@@ -38,14 +38,34 @@ A powerful, type-safe query builder library for Rust that leverages **key-paths*
 
 ## Installation
 
+### Option 1: Umbrella Crate (Recommended for Applications)
+
 Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-queries-builder = "0.1.0"
-key-paths-core = "1.0.1"
+rust-queries-builder = "0.6.0"
 key-paths-derive = "0.5.0"
 ```
+
+### Option 2: Individual Crates (Recommended for Libraries/POCs)
+
+For faster builds (65% faster) and minimal dependencies:
+
+```toml
+[dependencies]
+rust-queries-core = "0.6.0"
+rust-queries-derive = "0.6.0"  # Optional, only if using derive macros
+key-paths-derive = "0.5.0"
+```
+
+**⚠️ Important**: When using individual crates, import from the correct locations:
+```rust
+use rust_queries_core::{Query, QueryExt};  // ← QueryExt is here!
+use rust_queries_derive::QueryBuilder;      // ← Derive macros here
+```
+
+See the [Individual Crates Guide](INDIVIDUAL_CRATES_GUIDE.md) for complete details.
 
 ## Quick Start
 
@@ -451,6 +471,9 @@ cargo run --example macro_helpers
 
 # Extension trait & derive macros - call .query() directly on containers (v0.5.0+)
 cargo run --example derive_and_ext
+
+# Individual crates usage - demonstrates using core + derive separately (v0.6.0+)
+cargo run --example individual_crates
 ```
 
 ### Example: SQL Comparison

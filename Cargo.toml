@@ -80,3 +80,7 @@ path = "examples/macro_helpers.rs"
 name = "derive_and_ext"
 path = "examples/derive_and_ext.rs"
 
+[[example]]
+name = "individual_crates"
+path = "examples/individual_crates.rs"
+

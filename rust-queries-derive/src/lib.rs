@@ -24,7 +24,7 @@ pub fn derive_queryable(input: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     let expanded = quote! {
-        impl #impl_generics rust_queries_builder::Queryable<#name #ty_generics> for Vec<#name #ty_generics> #where_clause {
+        impl #impl_generics rust_queries_core::Queryable<#name #ty_generics> for Vec<#name #ty_generics> #where_clause {
             fn query_iter(&self) -> Box<dyn Iterator<Item = &#name #ty_generics> + '_> {
                 Box::new(self.iter())
             }
@@ -77,14 +77,14 @@ pub fn derive_query_builder(input: TokenStream) -> TokenStream {
         impl #name {
             #[doc = #field_docs]
             /// Creates a new eager Query from a slice of items
-            pub fn query(items: &[Self]) -> rust_queries_builder::Query<Self> {
-                rust_queries_builder::Query::new(items)
+            pub fn query(items: &[Self]) -> rust_queries_core::Query<Self> {
+                rust_queries_core::Query::new(items)
             }
 
             #[doc = #field_docs]
             /// Creates a new lazy Query from a slice of items
-            pub fn lazy_query(items: &[Self]) -> rust_queries_builder::LazyQuery<Self, impl Iterator<Item = &Self>> {
-                rust_queries_builder::LazyQuery::new(items)
+            pub fn lazy_query(items: &[Self]) -> rust_queries_core::LazyQuery<Self, impl Iterator<Item = &Self>> {
+                rust_queries_core::LazyQuery::new(items)
             }
         }
     };

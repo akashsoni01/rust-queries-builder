@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2025-10-12
 
+### 🐛 Bug Fix: Derive Macros Now Work with Individual Crates
+
+**Fixed**: The `#[derive(QueryBuilder)]` and `#[derive(Queryable)]` macros now correctly reference `rust_queries_core` instead of `rust_queries_builder`.
+
+**Problem**: When using individual crates (`rust-queries-core` + `rust-queries-derive`), the derive macros would fail with:
+```
+error[E0433]: failed to resolve: use of undeclared crate or module `rust_queries_builder`
+```
+
+**Solution**: Updated the proc macros to generate code that references `rust_queries_core::Query` and `rust_queries_core::LazyQuery` instead of `rust_queries_builder::Query`.
+
+**Impact**: 
+- ✅ Derive macros now work correctly with individual crates
+- ✅ No changes needed for users of the umbrella crate
+- ✅ Fully backwards compatible
+
+**Example** (now works correctly):
+```rust
+// Cargo.toml
+[dependencies]
+rust-queries-core = "0.6.0"
+rust-queries-derive = "0.6.0"
+
+// main.rs
+use rust_queries_core::QueryExt;
+use rust_queries_derive::QueryBuilder;
+
+#[derive(QueryBuilder)]  // Now works!
+struct Product { price: f64 }
+```
+
 ### Version Bump
 
 **Version Update**: Bumped version to 0.6.0 to reflect the significant improvements in v0.5.0.

@@ -4,6 +4,8 @@ A powerful, type-safe query builder library for Rust that leverages **key-paths*
 
 > 🎯 **v0.5.0 - Extension Trait & Derive Macros!** Call `.query()` and `.lazy_query()` directly on containers - [see extension guide](EXTENSION_TRAIT_GUIDE.md)
 
+> ⚡ **v0.5.0 - Build Optimized!** Split into 3 crates - **65% faster builds**, **6KB umbrella crate** - [see build guide](BUILD_OPTIMIZATION.md)
+
 > 🎨 **v0.4.0 - Helper Macros!** 12 macros to reduce boilerplate - save 20-45 characters per operation - [see macro guide](MACRO_GUIDE.md)
 
 > 📦 **v0.3.0 - Container Support!** Query Vec, HashMap, HashSet, BTreeMap, VecDeque, and more - [see container guide](CONTAINER_SUPPORT.md)

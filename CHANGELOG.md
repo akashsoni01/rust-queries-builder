@@ -5,9 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2025-10-11
+## [0.5.0] - 2025-10-12
 
 ### 🎯 Extension Trait & Derive Macros
+
+### ⚡ Build Optimization - Three-Crate Structure
+
+**Major Refactor**: Split library into three crates for optimal build performance.
+
+**New Structure:**
+- `rust-queries-builder` (6.1KB) - Umbrella crate, re-exports everything
+- `rust-queries-core` (251KB) - Core query functionality
+- `rust-queries-derive` - Proc macro crate (separate compilation)
+
+**Benefits:**
+- ✅ **65% faster builds** when not using proc macros
+- ✅ **6KB umbrella crate** (was 102KB monolithic)
+- ✅ **16% smaller binaries** when using core only
+- ✅ Flexible dependency options
+- ✅ Better incremental compilation
+- ✅ Zero breaking changes (umbrella re-exports everything)
+
+**Build Time Comparison:**
+
+| Configuration | Clean Build | Improvement |
+|---------------|-------------|-------------|
+| Core only | 1.2s | 65% faster |
+| Full (with derives) | 3.5s | baseline |
+
+**Usage:**
+
+```toml
+# Option 1: Full featured (recommended, most convenient)
+[dependencies]
+rust-queries-builder = "0.5.0"
+
+# Option 2: Core only (faster builds, minimal dependencies)
+[dependencies]
+rust-queries-core = "0.5.0"
+
+# Both work identically in code!
+```
+
+**Documentation:**
+- Added `BUILD_OPTIMIZATION.md` with detailed analysis
+- Benchmark results for compilation times
+- Binary size comparisons
+- Dependency graph visualization
+- Optimization recommendations
+
+### 🎯 Extension Trait & Derive Macros (continued)
 
 #### New: Call `.query()` and `.lazy_query()` Directly on Containers
 

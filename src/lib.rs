@@ -15,7 +15,7 @@
 //! ## Example
 //!
 //! ```rust
-//! use rust_queries_builder::Query;
+//! use rust_queries_builder::{Query, QueryExt};
 //! use key_paths_derive::Keypaths;
 //!
 //! #[derive(Clone, Keypaths)]
@@ -31,38 +31,21 @@
 //!     Product { id: 2, name: "Mouse".to_string(), price: 29.99, category: "Electronics".to_string() },
 //! ];
 //!
-//! // Filter products by category and price
+//! // Using extension trait - most ergonomic
+//! let query = products.query().where_(Product::category_r(), |cat| cat == "Electronics");
+//! let electronics = query.all();
+//!
+//! // Traditional approach
 //! let affordable = Query::new(&products)
-//!     .where_(Product::category_r(), |cat| cat == "Electronics")
 //!     .where_(Product::price_r(), |&price| price < 100.0)
 //!     .all();
 //!
-//! // Order by price
-//! let sorted = Query::new(&products)
-//!     .order_by_float(Product::price_r());
-//!
-//! // Aggregate
-//! let total = Query::new(&products)
-//!     .sum(Product::price_r());
+//! // Lazy evaluation for better performance
+//! let total = products.lazy_query().sum_by(Product::price_r());
 //! ```
 
-pub mod query;
-pub mod join;
-pub mod lazy;
-pub mod queryable;
-pub mod ext;
-
-#[macro_use]
-pub mod macros;
-
-pub use query::{Query, QueryWithSkip};
-pub use join::JoinQuery;
-pub use lazy::LazyQuery;
-pub use queryable::Queryable;
-pub use ext::QueryExt;
-
-// Re-export key-paths for convenience
-pub use key_paths_core::KeyPaths;
+// Re-export everything from core
+pub use rust_queries_core::*;
 
 // Re-export derive macros
 pub use rust_queries_derive::{Queryable as QueryableDerive, QueryBuilder};

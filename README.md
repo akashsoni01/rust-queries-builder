@@ -2,6 +2,8 @@
 
 A powerful, type-safe query builder library for Rust that leverages **key-paths** for SQL-like operations on in-memory collections. This library brings the expressiveness of SQL to Rust's collections with compile-time type safety.
 
+> 💡 **New!** See how SQL queries map to Rust Query Builder in our [SQL Comparison Example](#example-sql-comparison) - demonstrates 15 SQL patterns side-by-side!
+
 ## Features
 
 - 🔒 **Type-safe queries**: Compile-time type checking using key-paths
@@ -338,7 +340,35 @@ cargo run --example advanced_query_builder
 
 # Join operations example
 cargo run --example join_query_builder
+
+# SQL comparison - see how SQL queries map to Rust Query Builder
+cargo run --example sql_comparison
 ```
+
+### Example: SQL Comparison
+
+The `sql_comparison` example demonstrates how traditional SQL queries (like those in HSQLDB) translate to Rust Query Builder:
+
+```rust
+// SQL: SELECT * FROM employees WHERE department = 'Engineering';
+let engineering = Query::new(&employees)
+    .where_(Employee::department_r(), |dept| dept == "Engineering")
+    .all();
+
+// SQL: SELECT AVG(salary) FROM employees WHERE age < 30;
+let avg_salary = Query::new(&employees)
+    .where_(Employee::age_r(), |&age| age < 30)
+    .avg(Employee::salary_r());
+
+// SQL: SELECT * FROM employees ORDER BY salary DESC LIMIT 5;
+let top_5 = Query::new(&employees)
+    .order_by_float_desc(Employee::salary_r())
+    .into_iter()
+    .take(5)
+    .collect::<Vec<_>>();
+```
+
+The example demonstrates 15 different SQL patterns including SELECT, WHERE, JOIN, GROUP BY, ORDER BY, aggregations, and subqueries.
 
 ## Performance
 

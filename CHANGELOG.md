@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Examples
 - `advanced_query_builder` - Comprehensive query operations example
 - `join_query_builder` - Join operations example
+- `sql_comparison` - SQL vs Rust Query Builder comparison with 15 examples
 
 #### Documentation
 - Comprehensive README.md

@@ -1,6 +1,6 @@
 [package]
 name = "rust-queries-derive"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 authors = ["codefonsi<codefonsi@gmail.com>"]
 description = "Derive macros for rust-queries-builder"

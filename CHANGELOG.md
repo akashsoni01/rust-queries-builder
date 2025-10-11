@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-10-12
+
+### Version Bump
+
+**Version Update**: Bumped version to 0.6.0 to reflect the significant improvements in v0.5.0.
+
+**No breaking changes**: All features from v0.5.0 remain fully compatible.
+
+**Summary of features (from v0.5.0):**
+- ✅ Extension trait (`QueryExt`) for ergonomic API
+- ✅ Derive macros (`#[derive(QueryBuilder)]`, `#[derive(Queryable)]`)
+- ✅ Three-crate structure for optimal builds (65% faster)
+- ✅ 6KB umbrella crate (94% size reduction)
+- ✅ All previous features (lazy queries, macros, container support)
+
+**This release**: Version alignment and documentation updates.
+
 ## [0.5.0] - 2025-10-12
 
 ### 🎯 Extension Trait & Derive Macros

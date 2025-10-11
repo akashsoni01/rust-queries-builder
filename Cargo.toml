@@ -1,6 +1,6 @@
 [package]
 name = "rust-queries-builder"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 authors = ["codefonsi<codefonsi@gmail.com>"]
 description = "A powerful, type-safe query builder library for Rust that leverages key-paths for SQL-like operations on in-memory collections"

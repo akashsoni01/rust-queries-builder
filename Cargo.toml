@@ -68,3 +68,7 @@ path = "examples/custom_queryable.rs"
 name = "arc_rwlock_hashmap"
 path = "examples/arc_rwlock_hashmap.rs"
 
+[[example]]
+name = "macro_helpers"
+path = "examples/macro_helpers.rs"
+

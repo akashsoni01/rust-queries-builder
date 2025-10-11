@@ -51,6 +51,9 @@ pub mod join;
 pub mod lazy;
 pub mod queryable;
 
+#[macro_use]
+pub mod macros;
+
 pub use query::{Query, QueryWithSkip};
 pub use join::JoinQuery;
 pub use lazy::LazyQuery;

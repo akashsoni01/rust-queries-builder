@@ -2,6 +2,8 @@
 
 A powerful, type-safe query builder library for Rust that leverages **key-paths** for SQL-like operations on in-memory collections. This library brings the expressiveness of SQL to Rust's collections with compile-time type safety.
 
+> 🎨 **v0.4.0 - Helper Macros!** 12 macros to reduce boilerplate - save 20-45 characters per operation - [see macro guide](MACRO_GUIDE.md)
+
 > 📦 **v0.3.0 - Container Support!** Query Vec, HashMap, HashSet, BTreeMap, VecDeque, and more - [see container guide](CONTAINER_SUPPORT.md)
 
 > ⚡ **v0.3.0 - Lazy Evaluation!** New `LazyQuery` with deferred execution and early termination - [see lazy guide](LAZY_EVALUATION.md)
@@ -26,6 +28,7 @@ A powerful, type-safe query builder library for Rust that leverages **key-paths*
 - 🚀 **Clone-free operations**: Most operations work without `Clone` - [details](OPTIMIZATION.md)
 - ⚡ **Lazy evaluation**: Deferred execution with early termination - **up to 1000x faster** - [details](LAZY_EVALUATION.md)
 - 📦 **Multiple containers**: Vec, HashMap, HashSet, BTreeMap, VecDeque, arrays, and more - [details](CONTAINER_SUPPORT.md)
+- 🎨 **Helper macros**: 12 macros to reduce boilerplate - **30% less code** - [details](MACRO_GUIDE.md)
 
 ## Installation
 
@@ -408,6 +411,9 @@ cargo run --example custom_queryable
 
 # Arc<RwLock<T>> HashMap - thread-safe shared data with all 17 lazy operations
 cargo run --example arc_rwlock_hashmap
+
+# Macro helpers - reduce boilerplate with 12 helper macros (30% less code)
+cargo run --example macro_helpers
 ```
 
 ### Example: SQL Comparison

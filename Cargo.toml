@@ -1,0 +1,34 @@
+[package]
+name = "rust-queries-builder"
+version = "0.1.0"
+edition = "2021"
+authors = ["Akash Soni <akash@example.com>"]
+description = "A powerful, type-safe query builder library for Rust that leverages key-paths for SQL-like operations on in-memory collections"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/rust-queries-builder"
+keywords = ["query", "builder", "database", "sql", "keypaths"]
+categories = ["database", "data-structures"]
+
+[dependencies]
+key-paths-core = "1.0.1"
+key-paths-derive = "0.5.0"
+
+[features]
+default = []
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[lib]
+name = "rust_queries_builder"
+path = "src/lib.rs"
+
+[[example]]
+name = "advanced_query_builder"
+path = "examples/advanced_query_builder.rs"
+
+[[example]]
+name = "join_query_builder"
+path = "examples/join_query_builder.rs"
+

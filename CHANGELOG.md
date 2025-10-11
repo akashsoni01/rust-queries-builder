@@ -49,8 +49,9 @@ let query = Query::new(slice);
 **Added:**
 - **Trait**: `Queryable<T>` - Enables any type to be queryable
 - **Module**: `queryable` - Container trait implementations
-- **Example**: `container_support.rs` - Demonstrates 9+ container types
-- **Documentation**: `CONTAINER_SUPPORT.md` - Complete container guide
+- **Example**: `container_support.rs` - Demonstrates 11 standard container types
+- **Example**: `custom_queryable.rs` - Shows how to implement Queryable for 7 custom containers
+- **Documentation**: `CONTAINER_SUPPORT.md` - Complete container guide with custom examples
 
 ### ⚡ Lazy Evaluation
 

@@ -60,3 +60,7 @@ path = "examples/lazy_evaluation.rs"
 name = "container_support"
 path = "examples/container_support.rs"
 
+[[example]]
+name = "custom_queryable"
+path = "examples/custom_queryable.rs"
+

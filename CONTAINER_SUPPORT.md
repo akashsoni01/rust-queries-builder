@@ -289,8 +289,25 @@ impl<T> Queryable<T> for MyCustomContainer<T> {
 
 // Now you can query it!
 let container = MyCustomContainer { items: vec![/* ... */] };
-let items: Vec<&T> = container.query_iter().collect();
+let items: Vec<T> = container.query_iter().cloned().collect();
 let query = Query::new(&items);
+```
+
+### Complete Custom Examples
+
+See `examples/custom_queryable.rs` for 7 complete custom container implementations:
+
+1. **PaginatedCollection** - Items stored in fixed-size pages
+2. **CircularBuffer** - Fixed-capacity FIFO buffer
+3. **FilteredStorage** - Auto-filtering container
+4. **CategoryIndex** - Items indexed by category
+5. **LazyLoader** - Simulated lazy loading container
+6. **VersionedCollection** - Wrapper with metadata
+7. **Cache** - TTL-based cache with expiration
+
+Run the example:
+```bash
+cargo run --example custom_queryable
 ```
 
 ## Best Practices

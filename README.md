@@ -402,6 +402,9 @@ cargo run --example lazy_evaluation
 
 # Container support - demonstrates querying various container types
 cargo run --example container_support
+
+# Custom Queryable - implement Queryable for custom containers (7 examples)
+cargo run --example custom_queryable
 ```
 
 ### Example: SQL Comparison

@@ -26,7 +26,8 @@ pub struct Query<'a, T: 'static> {
     filters: Vec<Box<dyn Fn(&T) -> bool>>,
 }
 
-impl<'a, T: 'static + Clone> Query<'a, T> {
+// Core implementation without Clone requirement
+impl<'a, T: 'static> Query<'a, T> {
     /// Creates a new query from a slice of data.
     ///
     /// # Arguments
@@ -146,116 +147,6 @@ impl<'a, T: 'static + Clone> Query<'a, T> {
         }
     }
 
-    /// Orders results by a field in ascending order.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The key-path to the field to order by
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let sorted = query.order_by(Product::name_r());
-    /// ```
-    pub fn order_by<F>(&self, path: KeyPaths<T, F>) -> Vec<T>
-    where
-        F: Ord + Clone + 'static,
-    {
-        let mut results: Vec<T> = self
-            .data
-            .iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
-            .cloned()
-            .collect();
-
-        results.sort_by_key(|item| path.get(item).cloned());
-        results
-    }
-
-    /// Orders results by a field in descending order.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The key-path to the field to order by
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let sorted = query.order_by_desc(Product::stock_r());
-    /// ```
-    pub fn order_by_desc<F>(&self, path: KeyPaths<T, F>) -> Vec<T>
-    where
-        F: Ord + Clone + 'static,
-    {
-        let mut results: Vec<T> = self
-            .data
-            .iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
-            .cloned()
-            .collect();
-
-        results.sort_by(|a, b| {
-            let a_val = path.get(a).cloned();
-            let b_val = path.get(b).cloned();
-            b_val.cmp(&a_val)
-        });
-        results
-    }
-
-    /// Orders results by a float field in ascending order.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The key-path to the f64 field to order by
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let sorted = query.order_by_float(Product::price_r());
-    /// ```
-    pub fn order_by_float(&self, path: KeyPaths<T, f64>) -> Vec<T> {
-        let mut results: Vec<T> = self
-            .data
-            .iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
-            .cloned()
-            .collect();
-
-        results.sort_by(|a, b| {
-            let a_val = path.get(a).cloned().unwrap_or(0.0);
-            let b_val = path.get(b).cloned().unwrap_or(0.0);
-            a_val.partial_cmp(&b_val).unwrap_or(std::cmp::Ordering::Equal)
-        });
-        results
-    }
-
-    /// Orders results by a float field in descending order.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The key-path to the f64 field to order by
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let sorted = query.order_by_float_desc(Product::rating_r());
-    /// ```
-    pub fn order_by_float_desc(&self, path: KeyPaths<T, f64>) -> Vec<T> {
-        let mut results: Vec<T> = self
-            .data
-            .iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
-            .cloned()
-            .collect();
-
-        results.sort_by(|a, b| {
-            let a_val = path.get(a).cloned().unwrap_or(0.0);
-            let b_val = path.get(b).cloned().unwrap_or(0.0);
-            b_val.partial_cmp(&a_val).unwrap_or(std::cmp::Ordering::Equal)
-        });
-        results
-    }
-
     /// Projects/selects a single field from results.
     ///
     /// # Arguments
@@ -276,34 +167,6 @@ impl<'a, T: 'static + Clone> Query<'a, T> {
             .filter(|item| self.filters.iter().all(|f| f(item)))
             .filter_map(|item| path.get(item).cloned())
             .collect()
-    }
-
-    /// Groups results by a field value.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The key-path to the field to group by
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let by_category = query.group_by(Product::category_r());
-    /// ```
-    pub fn group_by<F>(&self, path: KeyPaths<T, F>) -> HashMap<F, Vec<T>>
-    where
-        F: Eq + std::hash::Hash + Clone + 'static,
-    {
-        let mut groups: HashMap<F, Vec<T>> = HashMap::new();
-
-        for item in self.data.iter() {
-            if self.filters.iter().all(|f| f(item)) {
-                if let Some(key) = path.get(item).cloned() {
-                    groups.entry(key).or_insert_with(Vec::new).push(item.clone());
-                }
-            }
-        }
-
-        groups
     }
 
     /// Computes the sum of a numeric field.
@@ -447,6 +310,157 @@ impl<'a, T: 'static + Clone> Query<'a, T> {
         self.data
             .iter()
             .any(|item| self.filters.iter().all(|f| f(item)))
+    }
+}
+
+// Operations that require Clone - separated for flexibility
+impl<'a, T: 'static + Clone> Query<'a, T> {
+    /// Orders results by a field in ascending order.
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned sorted copies.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the field to order by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = query.order_by(Product::name_r());
+    /// ```
+    pub fn order_by<F>(&self, path: KeyPaths<T, F>) -> Vec<T>
+    where
+        F: Ord + Clone + 'static,
+    {
+        let mut results: Vec<T> = self
+            .data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .cloned()
+            .collect();
+
+        results.sort_by_key(|item| path.get(item).cloned());
+        results
+    }
+
+    /// Orders results by a field in descending order.
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned sorted copies.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the field to order by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = query.order_by_desc(Product::stock_r());
+    /// ```
+    pub fn order_by_desc<F>(&self, path: KeyPaths<T, F>) -> Vec<T>
+    where
+        F: Ord + Clone + 'static,
+    {
+        let mut results: Vec<T> = self
+            .data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .cloned()
+            .collect();
+
+        results.sort_by(|a, b| {
+            let a_val = path.get(a).cloned();
+            let b_val = path.get(b).cloned();
+            b_val.cmp(&a_val)
+        });
+        results
+    }
+
+    /// Orders results by a float field in ascending order.
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned sorted copies.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the f64 field to order by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = query.order_by_float(Product::price_r());
+    /// ```
+    pub fn order_by_float(&self, path: KeyPaths<T, f64>) -> Vec<T> {
+        let mut results: Vec<T> = self
+            .data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .cloned()
+            .collect();
+
+        results.sort_by(|a, b| {
+            let a_val = path.get(a).cloned().unwrap_or(0.0);
+            let b_val = path.get(b).cloned().unwrap_or(0.0);
+            a_val.partial_cmp(&b_val).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        results
+    }
+
+    /// Orders results by a float field in descending order.
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned sorted copies.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the f64 field to order by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = query.order_by_float_desc(Product::rating_r());
+    /// ```
+    pub fn order_by_float_desc(&self, path: KeyPaths<T, f64>) -> Vec<T> {
+        let mut results: Vec<T> = self
+            .data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .cloned()
+            .collect();
+
+        results.sort_by(|a, b| {
+            let a_val = path.get(a).cloned().unwrap_or(0.0);
+            let b_val = path.get(b).cloned().unwrap_or(0.0);
+            b_val.partial_cmp(&a_val).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        results
+    }
+
+    /// Groups results by a field value.
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned copies in groups.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the field to group by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let by_category = query.group_by(Product::category_r());
+    /// ```
+    pub fn group_by<F>(&self, path: KeyPaths<T, F>) -> HashMap<F, Vec<T>>
+    where
+        F: Eq + std::hash::Hash + Clone + 'static,
+    {
+        let mut groups: HashMap<F, Vec<T>> = HashMap::new();
+
+        for item in self.data.iter() {
+            if self.filters.iter().all(|f| f(item)) {
+                if let Some(key) = path.get(item).cloned() {
+                    groups.entry(key).or_insert_with(Vec::new).push(item.clone());
+                }
+            }
+        }
+
+        groups
     }
 }
 

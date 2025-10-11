@@ -44,3 +44,11 @@ path = "examples/sql_verification.rs"
 name = "doc_examples"
 path = "examples/doc_examples.rs"
 
+[[example]]
+name = "without_clone"
+path = "examples/without_clone.rs"
+
+[[example]]
+name = "memory_safety_verification"
+path = "examples/memory_safety_verification.rs"
+

@@ -32,8 +32,11 @@ pub struct JoinQuery<'a, L: 'static, R: 'static> {
     right: &'a [R],
 }
 
-impl<'a, L: Clone, R: Clone> JoinQuery<'a, L, R> {
+impl<'a, L: 'static, R: 'static> JoinQuery<'a, L, R> {
     /// Creates a new join query from two collections.
+    ///
+    /// **Note**: No `Clone` required on `L` or `R`. The mapper function 
+    /// handles any cloning needed for the result type.
     ///
     /// # Arguments
     ///

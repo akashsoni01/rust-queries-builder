@@ -36,3 +36,7 @@ path = "examples/join_query_builder.rs"
 name = "sql_comparison"
 path = "examples/sql_comparison.rs"
 
+[[example]]
+name = "sql_verification"
+path = "examples/sql_verification.rs"
+

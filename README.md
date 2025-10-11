@@ -4,6 +4,8 @@ A powerful, type-safe query builder library for Rust that leverages **key-paths*
 
 > 💡 **New!** See how SQL queries map to Rust Query Builder in our [SQL Comparison Example](#example-sql-comparison) - demonstrates 15 SQL patterns side-by-side!
 
+> ✅ **Verified!** All query results are **exact SQL equivalents** - [see verification tests](SQL_FEATURES.md) (17/17 tests passing)
+
 ## Features
 
 - 🔒 **Type-safe queries**: Compile-time type checking using key-paths
@@ -343,6 +345,9 @@ cargo run --example join_query_builder
 
 # SQL comparison - see how SQL queries map to Rust Query Builder
 cargo run --example sql_comparison
+
+# SQL verification - verify exact SQL equivalence (17 tests)
+cargo run --example sql_verification
 ```
 
 ### Example: SQL Comparison

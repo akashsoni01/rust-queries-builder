@@ -446,4 +446,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Acknowledgments
 
-Built with [rust-key-paths](https://github.com/yourusername/rust-key-paths) for type-safe field access.
+Built with [rust-key-paths](https://github.com/codefonsi/rust-key-paths) for type-safe field access.

@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - 2025-10-11
 
+### 📦 Container Support
+
+#### New: Support for Multiple Container Types
+
+**Major Addition**: Query builder now works with various Rust collections.
+
+**Supported containers:**
+- ✅ `Vec<T>` - Standard vector (direct support)
+- ✅ `&[T]` - Slices (direct support)
+- ✅ `[T; N]` - Fixed-size arrays (direct support)
+- ✅ `VecDeque<T>` - Double-ended queue (via `.make_contiguous()` or clone)
+- ✅ `LinkedList<T>` - Linked list (via clone to Vec)
+- ✅ `HashSet<T>` - Hash set (via clone to Vec)
+- ✅ `BTreeSet<T>` - Ordered set (via clone to Vec, maintains sort order)
+- ✅ `HashMap<K, V>` - Hash map (query values via `.values()`)
+- ✅ `BTreeMap<K, V>` - Ordered map (query values via `.values()`, maintains key order)
+- ✅ `Option<T>` - Optional value (via `std::slice::from_ref`)
+- ✅ `Result<T, E>` - Result type (via `.iter()`)
+
+**Example:**
+```rust
+use std::collections::{HashMap, HashSet, VecDeque};
+
+// HashMap
+let map: HashMap<String, Product> = /* ... */;
+let vec: Vec<Product> = map.values().cloned().collect();
+let query = Query::new(&vec);
+
+// HashSet
+let set: HashSet<Product> = /* ... */;
+let vec: Vec<Product> = set.iter().cloned().collect();
+let query = Query::new(&vec);
+
+// VecDeque (zero-copy)
+let mut deque: VecDeque<Product> = /* ... */;
+let slice = deque.make_contiguous();
+let query = Query::new(slice);
+```
+
+**Added:**
+- **Trait**: `Queryable<T>` - Enables any type to be queryable
+- **Module**: `queryable` - Container trait implementations
+- **Example**: `container_support.rs` - Demonstrates 9+ container types
+- **Documentation**: `CONTAINER_SUPPORT.md` - Complete container guide
+
 ### ⚡ Lazy Evaluation
 
 #### New: LazyQuery for Deferred Execution

@@ -49,10 +49,12 @@
 pub mod query;
 pub mod join;
 pub mod lazy;
+pub mod queryable;
 
 pub use query::{Query, QueryWithSkip};
 pub use join::JoinQuery;
 pub use lazy::LazyQuery;
+pub use queryable::Queryable;
 
 // Re-export key-paths for convenience
 pub use key_paths_core::KeyPaths;

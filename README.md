@@ -2,6 +2,8 @@
 
 A powerful, type-safe query builder library for Rust that leverages **key-paths** for SQL-like operations on in-memory collections. This library brings the expressiveness of SQL to Rust's collections with compile-time type safety.
 
+> 📦 **v0.3.0 - Container Support!** Query Vec, HashMap, HashSet, BTreeMap, VecDeque, and more - [see container guide](CONTAINER_SUPPORT.md)
+
 > ⚡ **v0.3.0 - Lazy Evaluation!** New `LazyQuery` with deferred execution and early termination - [see lazy guide](LAZY_EVALUATION.md)
 
 > 🚀 **v0.2.0 - Performance Optimized!** Most operations now work **without `Clone`** - [see optimization guide](OPTIMIZATION.md)
@@ -23,6 +25,7 @@ A powerful, type-safe query builder library for Rust that leverages **key-paths*
 - 🎯 **Fluent API**: Chain operations naturally
 - 🚀 **Clone-free operations**: Most operations work without `Clone` - [details](OPTIMIZATION.md)
 - ⚡ **Lazy evaluation**: Deferred execution with early termination - **up to 1000x faster** - [details](LAZY_EVALUATION.md)
+- 📦 **Multiple containers**: Vec, HashMap, HashSet, BTreeMap, VecDeque, arrays, and more - [details](CONTAINER_SUPPORT.md)
 
 ## Installation
 
@@ -396,6 +399,9 @@ cargo run --example memory_safety_verification
 
 # Lazy evaluation - demonstrates deferred execution and early termination
 cargo run --example lazy_evaluation
+
+# Container support - demonstrates querying various container types
+cargo run --example container_support
 ```
 
 ### Example: SQL Comparison

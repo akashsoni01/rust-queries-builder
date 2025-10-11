@@ -50,6 +50,7 @@ pub mod query;
 pub mod join;
 pub mod lazy;
 pub mod queryable;
+pub mod ext;
 
 #[macro_use]
 pub mod macros;
@@ -58,6 +59,10 @@ pub use query::{Query, QueryWithSkip};
 pub use join::JoinQuery;
 pub use lazy::LazyQuery;
 pub use queryable::Queryable;
+pub use ext::QueryExt;
 
 // Re-export key-paths for convenience
 pub use key_paths_core::KeyPaths;
+
+// Re-export derive macros
+pub use rust_queries_derive::{Queryable as QueryableDerive, QueryBuilder};

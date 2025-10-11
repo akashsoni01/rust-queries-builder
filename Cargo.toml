@@ -1,6 +1,6 @@
 [package]
 name = "rust-queries-builder"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 authors = ["codefonsi<codefonsi@gmail.com>"]
 description = "A powerful, type-safe query builder library for Rust that leverages key-paths for SQL-like operations on in-memory collections"
@@ -12,6 +12,7 @@ categories = ["database", "data-structures"]
 [dependencies]
 key-paths-core = "1.0.1"
 key-paths-derive = "0.5.0"
+rust-queries-derive = { path = "rust-queries-derive", version = "0.5.0" }
 
 [features]
 default = []
@@ -71,4 +72,8 @@ path = "examples/arc_rwlock_hashmap.rs"
 [[example]]
 name = "macro_helpers"
 path = "examples/macro_helpers.rs"
+
+[[example]]
+name = "derive_and_ext"
+path = "examples/derive_and_ext.rs"
 

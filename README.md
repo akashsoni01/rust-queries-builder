@@ -2,6 +2,8 @@
 
 A powerful, type-safe query builder library for Rust that leverages **key-paths** for SQL-like operations on in-memory collections. This library brings the expressiveness of SQL to Rust's collections with compile-time type safety.
 
+> 🎯 **v0.5.0 - Extension Trait & Derive Macros!** Call `.query()` and `.lazy_query()` directly on containers - [see extension guide](EXTENSION_TRAIT_GUIDE.md)
+
 > 🎨 **v0.4.0 - Helper Macros!** 12 macros to reduce boilerplate - save 20-45 characters per operation - [see macro guide](MACRO_GUIDE.md)
 
 > 📦 **v0.3.0 - Container Support!** Query Vec, HashMap, HashSet, BTreeMap, VecDeque, and more - [see container guide](CONTAINER_SUPPORT.md)
@@ -29,6 +31,8 @@ A powerful, type-safe query builder library for Rust that leverages **key-paths*
 - ⚡ **Lazy evaluation**: Deferred execution with early termination - **up to 1000x faster** - [details](LAZY_EVALUATION.md)
 - 📦 **Multiple containers**: Vec, HashMap, HashSet, BTreeMap, VecDeque, arrays, and more - [details](CONTAINER_SUPPORT.md)
 - 🎨 **Helper macros**: 12 macros to reduce boilerplate - **30% less code** - [details](MACRO_GUIDE.md)
+- 🎯 **Extension trait**: Call `.query()` and `.lazy_query()` directly on containers - [details](EXTENSION_TRAIT_GUIDE.md)
+- 📝 **Derive macros**: Auto-generate query helpers with `#[derive(QueryBuilder)]` - [details](EXTENSION_TRAIT_GUIDE.md)
 
 ## Installation
 
@@ -43,13 +47,41 @@ key-paths-derive = "0.5.0"
 
 ## Quick Start
 
+### Extension Trait (Easiest)
+
+```rust
+use rust_queries_builder::QueryExt;  // Extension trait
+use key_paths_derive::Keypaths;
+
+// Note: Clone not required for most operations!
+#[derive(Keypaths)]
+struct Product {
+    id: u32,
+    name: String,
+    price: f64,
+    category: String,
+    stock: u32,
+}
+
+let products = vec![/* ... */];
+
+// Call .query() directly on Vec!
+let query = products.query().where_(Product::price_r(), |&p| p > 100.0);
+let expensive = query.all();
+
+// Or use lazy queries for better performance
+let cheap: Vec<_> = products
+    .lazy_query()
+    .where_(Product::price_r(), |&p| p < 50.0)
+    .collect();
+```
+
 ### Standard Query (Eager)
 
 ```rust
 use rust_queries_builder::Query;
 use key_paths_derive::Keypaths;
 
-// Note: Clone not required for most operations!
 #[derive(Keypaths)]
 struct Product {
     id: u32,
@@ -414,6 +446,9 @@ cargo run --example arc_rwlock_hashmap
 
 # Macro helpers - reduce boilerplate with 12 helper macros (30% less code)
 cargo run --example macro_helpers
+
+# Extension trait & derive macros - call .query() directly on containers (v0.5.0+)
+cargo run --example derive_and_ext
 ```
 
 ### Example: SQL Comparison

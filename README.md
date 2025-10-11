@@ -405,6 +405,9 @@ cargo run --example container_support
 
 # Custom Queryable - implement Queryable for custom containers (7 examples)
 cargo run --example custom_queryable
+
+# Arc<RwLock<T>> HashMap - thread-safe shared data with all 17 lazy operations
+cargo run --example arc_rwlock_hashmap
 ```
 
 ### Example: SQL Comparison

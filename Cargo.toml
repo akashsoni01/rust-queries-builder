@@ -64,3 +64,7 @@ path = "examples/container_support.rs"
 name = "custom_queryable"
 path = "examples/custom_queryable.rs"
 
+[[example]]
+name = "arc_rwlock_hashmap"
+path = "examples/arc_rwlock_hashmap.rs"
+

@@ -51,7 +51,10 @@ let query = Query::new(slice);
 - **Module**: `queryable` - Container trait implementations
 - **Example**: `container_support.rs` - Demonstrates 11 standard container types
 - **Example**: `custom_queryable.rs` - Shows how to implement Queryable for 7 custom containers
+- **Example**: `arc_rwlock_hashmap.rs` - HashMap<K, Arc<RwLock<V>>> with all 17 lazy operations
 - **Documentation**: `CONTAINER_SUPPORT.md` - Complete container guide with custom examples
+- **Documentation**: `QUERYABLE_GUIDE.md` - Guide for implementing Queryable trait
+- **Documentation**: `ARC_RWLOCK_PATTERN.md` - Thread-safe shared data pattern guide
 
 ### ⚡ Lazy Evaluation
 

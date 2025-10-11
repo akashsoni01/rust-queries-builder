@@ -1,11 +1,11 @@
 [package]
 name = "rust-queries-builder"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-authors = ["Akash Soni <akash@example.com>"]
+authors = ["codefonsi<codefonsi@gmail.com>"]
 description = "A powerful, type-safe query builder library for Rust that leverages key-paths for SQL-like operations on in-memory collections"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/rust-queries-builder"
+repository = "https://github.com/codefonsi/rust-queries-builder"
 keywords = ["query", "builder", "database", "sql", "keypaths"]
 categories = ["database", "data-structures"]
 
@@ -17,8 +17,8 @@ key-paths-derive = "0.5.0"
 default = []
 
 [dev-dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+# serde = { version = "1.0", features = ["derive"] }
+# serde_json = "1.0"
 
 [lib]
 name = "rust_queries_builder"
@@ -39,4 +39,8 @@ path = "examples/sql_comparison.rs"
 [[example]]
 name = "sql_verification"
 path = "examples/sql_verification.rs"
+
+[[example]]
+name = "doc_examples"
+path = "examples/doc_examples.rs"
 

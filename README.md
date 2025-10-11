@@ -50,10 +50,10 @@ fn main() {
     ];
 
     // Filter products by category and price
-    let affordable_electronics = Query::new(&products)
+    let query = Query::new(&products)
         .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&price| price < 100.0)
-        .all();
+        .where_(Product::price_r(), |&price| price < 100.0);
+    let affordable_electronics = query.all();
 
     println!("Found {} affordable electronics", affordable_electronics.len());
 }
@@ -66,16 +66,16 @@ fn main() {
 Filter collections using type-safe key-paths:
 
 ```rust
-let electronics = Query::new(&products)
-    .where_(Product::category_r(), |cat| cat == "Electronics")
-    .all();
+let query = Query::new(&products)
+    .where_(Product::category_r(), |cat| cat == "Electronics");
+let electronics = query.all();
 
 // Multiple conditions
-let premium_electronics = Query::new(&products)
+let query2 = Query::new(&products)
     .where_(Product::category_r(), |cat| cat == "Electronics")
     .where_(Product::price_r(), |&price| price > 500.0)
-    .where_(Product::stock_r(), |&stock| stock > 0)
-    .all();
+    .where_(Product::stock_r(), |&stock| stock > 0);
+let premium_electronics = query2.all();
 ```
 
 ### Selecting Fields with `select`
@@ -159,15 +159,17 @@ Limit and skip results for pagination:
 
 ```rust
 // Get first 10 products
-let first_page = Query::new(&products).limit(10);
+let query = Query::new(&products);
+let first_page = query.limit(10);
 
 // Get second page (skip 10, take 10)
-let second_page = Query::new(&products).skip(10).limit(10);
+let query = Query::new(&products);
+let second_page = query.skip(10).limit(10);
 
 // Get first matching item
-let first = Query::new(&products)
-    .where_(Product::price_r(), |&price| price > 1000.0)
-    .first();
+let query = Query::new(&products)
+    .where_(Product::price_r(), |&price| price > 1000.0);
+let first = query.first();
 ```
 
 ## Join Operations
@@ -348,6 +350,9 @@ cargo run --example sql_comparison
 
 # SQL verification - verify exact SQL equivalence (17 tests)
 cargo run --example sql_verification
+
+# Documentation examples - verify all doc examples compile and run (10 tests)
+cargo run --example doc_examples
 ```
 
 ### Example: SQL Comparison

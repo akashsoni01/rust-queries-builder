@@ -21,9 +21,9 @@ SELECT * FROM employees WHERE department = 'Engineering';
 
 **Rust Query Builder:**
 ```rust
-let engineering = Query::new(&employees)
-    .where_(Employee::department_r(), |dept| dept == "Engineering")
-    .all();
+let query = Query::new(&employees)
+    .where_(Employee::department_r(), |dept| dept == "Engineering");
+let engineering = query.all();
 ```
 
 ### SELECT Specific Columns (Projection)
@@ -50,10 +50,10 @@ WHERE salary > 70000 AND age < 35;
 
 **Rust Query Builder:**
 ```rust
-let results = Query::new(&employees)
+let query = Query::new(&employees)
     .where_(Employee::salary_r(), |&salary| salary > 70000.0)
-    .where_(Employee::age_r(), |&age| age < 35)
-    .all();
+    .where_(Employee::age_r(), |&age| age < 35);
+let results = query.all();
 ```
 
 ### Complex Conditions (BETWEEN, OR)
@@ -365,9 +365,9 @@ let avg_salary = Query::new(&employees)
     .avg(Employee::salary_r())
     .unwrap_or(0.0);
 
-let above_avg = Query::new(&employees)
-    .where_(Employee::salary_r(), move |&sal| sal > avg_salary)
-    .all();
+let query = Query::new(&employees)
+    .where_(Employee::salary_r(), move |&sal| sal > avg_salary);
+let above_avg = query.all();
 ```
 
 ### EXISTS
@@ -420,8 +420,10 @@ FROM employees;
 
 **Rust Query Builder:**
 ```rust
-let results: Vec<_> = Query::new(&employees)
-    .all()
+let query = Query::new(&employees);
+let all_employees = query.all();
+
+let results: Vec<_> = all_employees
     .iter()
     .map(|emp| {
         let grade = if emp.salary > 100000.0 {

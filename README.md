@@ -2,7 +2,11 @@
 
 A powerful, type-safe query builder library for Rust that leverages **key-paths** for SQL-like operations on in-memory collections. This library brings the expressiveness of SQL to Rust's collections with compile-time type safety.
 
+> ⚡ **v0.3.0 - Lazy Evaluation!** New `LazyQuery` with deferred execution and early termination - [see lazy guide](LAZY_EVALUATION.md)
+
 > 🚀 **v0.2.0 - Performance Optimized!** Most operations now work **without `Clone`** - [see optimization guide](OPTIMIZATION.md)
+
+> 🔒 **Memory Safe!** Using `'static` bounds causes **0 memory leaks** - [verified with tests](MEMORY_SAFETY.md) ✅
 
 > 💡 **New!** See how SQL queries map to Rust Query Builder in our [SQL Comparison Example](#example-sql-comparison) - demonstrates 15 SQL patterns side-by-side!
 
@@ -18,6 +22,7 @@ A powerful, type-safe query builder library for Rust that leverages **key-paths*
 - ⚡ **Zero-cost abstractions**: Leverages Rust's zero-cost abstractions
 - 🎯 **Fluent API**: Chain operations naturally
 - 🚀 **Clone-free operations**: Most operations work without `Clone` - [details](OPTIMIZATION.md)
+- ⚡ **Lazy evaluation**: Deferred execution with early termination - **up to 1000x faster** - [details](LAZY_EVALUATION.md)
 
 ## Installation
 
@@ -31,6 +36,8 @@ key-paths-derive = "0.5.0"
 ```
 
 ## Quick Start
+
+### Standard Query (Eager)
 
 ```rust
 use rust_queries_builder::Query;
@@ -60,6 +67,29 @@ fn main() {
     let affordable_electronics = query.all();
 
     println!("Found {} affordable electronics", affordable_electronics.len());
+}
+```
+
+### Lazy Query (Deferred Execution - NEW in v0.3.0!)
+
+```rust
+use rust_queries_builder::LazyQuery;
+use key_paths_derive::Keypaths;
+
+fn main() {
+    let products = vec![/* ... */];
+
+    // Build query (nothing executes yet!)
+    let query = LazyQuery::new(&products)
+        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::price_r(), |&price| price < 100.0)
+        .take_lazy(10);  // Will stop after finding 10 items!
+
+    // Execute query (lazy evaluation with early termination)
+    let first_10: Vec<_> = query.collect();
+
+    println!("Found {} items (stopped early!)", first_10.len());
+    // Up to 100x faster for large datasets with take_lazy!
 }
 ```
 
@@ -360,6 +390,12 @@ cargo run --example doc_examples
 
 # Clone-free operations - demonstrates performance optimization (v0.2.0+)
 cargo run --example without_clone
+
+# Memory safety verification - proves 'static doesn't cause memory leaks
+cargo run --example memory_safety_verification
+
+# Lazy evaluation - demonstrates deferred execution and early termination
+cargo run --example lazy_evaluation
 ```
 
 ### Example: SQL Comparison

@@ -309,23 +309,48 @@ let sorted_refs: Vec<_> = indices.iter()
     .collect();
 ```
 
+## Memory Safety
+
+**Q: Does using `'static` instead of `Clone` cause memory leaks?**
+
+**A: NO!** We've verified with comprehensive testing:
+
+- ✅ 0 memory leaks across all test scenarios
+- ✅ All allocations are properly freed
+- ✅ `'static` is a type constraint, not a data lifetime
+- ✅ RAII ensures automatic cleanup
+
+See the detailed verification:
+
+```bash
+cargo run --example memory_safety_verification
+```
+
+**Result**: Allocated: 1000, Dropped: 1000, Leaked: **0** ✅
+
+For complete explanation, see [MEMORY_SAFETY.md](MEMORY_SAFETY.md)
+
 ## Summary
 
 ✅ **Major Performance Win**: 10x-50x faster for common operations  
 ✅ **Lower Memory Usage**: No unnecessary cloning  
 ✅ **More Flexible**: Work with types that can't or shouldn't be cloned  
 ✅ **Backward Compatible**: Existing code with `Clone` still works  
-✅ **Explicit Cost**: You choose when to clone
+✅ **Explicit Cost**: You choose when to clone  
+✅ **Memory Safe**: Verified 0 leaks with `'static` bounds  
 
-Run the example to see it in action:
+Run the examples to see it in action:
 
 ```bash
 cargo run --example without_clone
+cargo run --example memory_safety_verification
 ```
 
 ## See Also
 
 - [README.md](README.md) - Main documentation
 - [CHANGELOG.md](CHANGELOG.md) - Version history
-- [examples/without_clone.rs](examples/without_clone.rs) - Full working example
+- [MEMORY_SAFETY.md](MEMORY_SAFETY.md) - Memory safety verification
+- [examples/without_clone.rs](examples/without_clone.rs) - Clone-free operations
+- [examples/memory_safety_verification.rs](examples/memory_safety_verification.rs) - Memory leak testing
 

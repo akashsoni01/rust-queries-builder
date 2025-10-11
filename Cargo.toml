@@ -52,3 +52,7 @@ path = "examples/without_clone.rs"
 name = "memory_safety_verification"
 path = "examples/memory_safety_verification.rs"
 
+[[example]]
+name = "lazy_evaluation"
+path = "examples/lazy_evaluation.rs"
+

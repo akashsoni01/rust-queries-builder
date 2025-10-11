@@ -48,9 +48,11 @@
 
 pub mod query;
 pub mod join;
+pub mod lazy;
 
 pub use query::{Query, QueryWithSkip};
 pub use join::JoinQuery;
+pub use lazy::LazyQuery;
 
 // Re-export key-paths for convenience
 pub use key_paths_core::KeyPaths;

@@ -1,2 +1,3 @@
 *.lock
 /target
+/rust-queries-derive/target

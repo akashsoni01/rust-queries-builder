@@ -297,7 +297,7 @@ dependencies = [
 
 [[package]]
 name = "rust-queries-core"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "chrono",
  "key-paths-core",

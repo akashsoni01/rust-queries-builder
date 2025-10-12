@@ -106,3 +106,7 @@ path = "examples/lazy_datetime_helpers.rs"
 name = "lock_aware_queries"
 path = "examples/lock_aware_queries.rs"
 
+[[example]]
+name = "sql_like_lock_queries"
+path = "examples/sql_like_lock_queries.rs"
+

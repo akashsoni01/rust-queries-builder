@@ -344,7 +344,68 @@ let high_value = JoinQuery::new(&users, &orders)
 - **Cross Join**: Returns Cartesian product of both collections
 - **Join Where**: Inner join with additional predicates
 
-## DateTime Operations (NEW in v0.7.0!)
+## Lock-Aware Querying (NEW in v0.8.0!)
+
+Query `Arc<RwLock<T>>` and `Arc<Mutex<T>>` with **full SQL syntax** - NO copying required!
+
+```rust
+use rust_queries_builder::{LockQueryable, LockLazyQueryable};
+use std::sync::{Arc, RwLock};
+use std::collections::HashMap;
+use key_paths_derive::Keypaths;
+
+#[derive(Clone, Keypaths)]
+struct Product {
+    name: String,
+    price: f64,
+    category: String,
+    stock: u32,
+}
+
+let products: HashMap<String, Arc<RwLock<Product>>> = /* ... */;
+
+// Full SQL-like syntax on locked data!
+let expensive = products
+    .lock_query()
+    .where_(Product::category_r(), |cat| cat == "Electronics")
+    .where_(Product::price_r(), |&p| p > 500.0)
+    .order_by_float_desc(Product::rating_r())
+    .limit(10);
+
+// GROUP BY with aggregations
+let by_category = products
+    .lock_query()
+    .group_by(Product::category_r());
+
+// Aggregations
+let stats = products.lock_query();
+let total = stats.sum(Product::price_r());
+let avg = stats.avg(Product::price_r());
+let count = stats.count();
+
+// Lazy with early termination
+let first_match: Vec<_> = products
+    .lock_lazy_query()
+    .where_(Product::stock_r(), |&s| s > 20)
+    .take_lazy(5)
+    .collect();
+```
+
+**Performance**: **5.25x faster** than copy-based approach!
+
+### Available Operations on Locked Data
+
+- **WHERE**: Filter with key-path predicates
+- **SELECT**: Project specific fields
+- **ORDER BY**: Sort by any field (ASC/DESC)
+- **GROUP BY**: Group by field values
+- **Aggregations**: COUNT, SUM, AVG, MIN, MAX
+- **LIMIT**: Paginate results
+- **EXISTS**: Check existence
+- **FIRST**: Find first match
+- **Lazy**: Early termination with `lock_lazy_query()`
+
+## DateTime Operations (v0.7.0)
 
 Query by dates, times, weekdays, and business hours with optional chrono support:
 
@@ -568,6 +629,9 @@ cargo run --example arc_rwlock_hashmap
 
 # Lock-aware queries - query Arc<RwLock<T>> WITHOUT copying (v0.8.0+, 5x faster!)
 cargo run --example lock_aware_queries --release
+
+# SQL-like lock queries - full SQL syntax on locked HashMaps (v0.8.0+)
+cargo run --example sql_like_lock_queries --release
 
 # Macro helpers - reduce boilerplate with 12 helper macros (30% less code)
 cargo run --example macro_helpers

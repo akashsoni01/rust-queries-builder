@@ -90,3 +90,7 @@ path = "examples/individual_crates.rs"
 name = "datetime_operations"
 path = "examples/datetime_operations.rs"
 
+[[example]]
+name = "lazy_datetime_operations"
+path = "examples/lazy_datetime_operations.rs"
+

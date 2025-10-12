@@ -529,6 +529,9 @@ cargo run --example join_query_builder
 # DateTime operations - filter by dates, times, weekdays (v0.7.0+, requires datetime feature)
 cargo run --example datetime_operations --features datetime
 
+# Lazy DateTime operations - efficient datetime queries with early termination (v0.7.0+)
+cargo run --example lazy_datetime_operations --features datetime --release
+
 # SQL comparison - see how SQL queries map to Rust Query Builder
 cargo run --example sql_comparison
 

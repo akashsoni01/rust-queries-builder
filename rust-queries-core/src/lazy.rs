@@ -5,6 +5,10 @@
 
 use key_paths_core::KeyPaths;
 use std::marker::PhantomData;
+use std::time::SystemTime;
+
+#[cfg(feature = "datetime")]
+use chrono::{DateTime, TimeZone};
 
 /// A lazy query builder that uses iterators for deferred execution.
 ///
@@ -366,6 +370,314 @@ where
         self.iter
             .filter_map(move |item| path.get(item).cloned())
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+    }
+
+    // DateTime operations for SystemTime (lazy)
+    /// Filter by SystemTime being after a reference time (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the SystemTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = LazyQuery::new(&events)
+    ///     .where_after_systemtime(Event::timestamp_r(), cutoff_time)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_after_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        self.where_(path, move |time| time > &reference)
+    }
+
+    /// Filter by SystemTime being before a reference time (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the SystemTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let old = LazyQuery::new(&events)
+    ///     .where_before_systemtime(Event::timestamp_r(), cutoff_time)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_before_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        self.where_(path, move |time| time < &reference)
+    }
+
+    /// Filter by SystemTime being between two times (inclusive, lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the SystemTime field
+    /// * `start` - The start time
+    /// * `end` - The end time
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let range = LazyQuery::new(&events)
+    ///     .where_between_systemtime(Event::timestamp_r(), start, end)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_between_systemtime(
+        self,
+        path: KeyPaths<T, SystemTime>,
+        start: SystemTime,
+        end: SystemTime,
+    ) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        self.where_(path, move |time| time >= &start && time <= &end)
+    }
+}
+
+// DateTime operations with chrono (only available with datetime feature, lazy)
+#[cfg(feature = "datetime")]
+impl<'a, T: 'static, I> LazyQuery<'a, T, I>
+where
+    I: Iterator<Item = &'a T> + 'a,
+{
+    /// Filter by DateTime being after a reference time (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = LazyQuery::new(&events)
+    ///     .where_after(Event::timestamp_r(), cutoff_time)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_after<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| time > &reference)
+    }
+
+    /// Filter by DateTime being before a reference time (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let old = LazyQuery::new(&events)
+    ///     .where_before(Event::timestamp_r(), cutoff_time)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_before<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| time < &reference)
+    }
+
+    /// Filter by DateTime being between two times (inclusive, lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `start` - The start time
+    /// * `end` - The end time
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let range = LazyQuery::new(&events)
+    ///     .where_between(Event::timestamp_r(), start, end)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_between<Tz>(
+        self,
+        path: KeyPaths<T, DateTime<Tz>>,
+        start: DateTime<Tz>,
+        end: DateTime<Tz>,
+    ) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| time >= &start && time <= &end)
+    }
+
+    /// Filter by DateTime being today (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `now` - The current DateTime to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let today = LazyQuery::new(&events)
+    ///     .where_today(Event::timestamp_r(), Utc::now())
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_today<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, now: DateTime<Tz>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| {
+            time.date_naive() == now.date_naive()
+        })
+    }
+
+    /// Filter by DateTime year (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `year` - The year to filter by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let this_year = LazyQuery::new(&events)
+    ///     .where_year(Event::timestamp_r(), 2024)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_year<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, year: i32) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, move |time| time.year() == year)
+    }
+
+    /// Filter by DateTime month (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `month` - The month to filter by (1-12)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let december = LazyQuery::new(&events)
+    ///     .where_month(Event::timestamp_r(), 12)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_month<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, month: u32) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, move |time| time.month() == month)
+    }
+
+    /// Filter by DateTime day (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `day` - The day to filter by (1-31)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let first = LazyQuery::new(&events)
+    ///     .where_day(Event::timestamp_r(), 1)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_day<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, day: u32) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, move |time| time.day() == day)
+    }
+
+    /// Filter by weekend dates (Saturday and Sunday, lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let weekend_events = LazyQuery::new(&events)
+    ///     .where_weekend(Event::timestamp_r())
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_weekend<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, |time| {
+            let weekday = time.weekday().num_days_from_monday();
+            weekday >= 5
+        })
+    }
+
+    /// Filter by weekday dates (Monday through Friday, lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let weekday_events = LazyQuery::new(&events)
+    ///     .where_weekday(Event::timestamp_r())
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_weekday<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, |time| {
+            let weekday = time.weekday().num_days_from_monday();
+            weekday < 5
+        })
+    }
+
+    /// Filter by business hours (9 AM - 5 PM, lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let business_hours = LazyQuery::new(&events)
+    ///     .where_business_hours(Event::timestamp_r())
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_business_hours<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Timelike;
+        self.where_(path, |time| {
+            let hour = time.hour();
+            hour >= 9 && hour < 17
+        })
     }
 }
 

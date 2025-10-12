@@ -1,9 +1,9 @@
 // Demonstrates querying HashMap<String, Arc<RwLock<Product>>>
 // This is a common pattern for thread-safe shared data
-// Shows all lazy query operations
+// Shows lock-aware querying WITHOUT copying data
 // cargo run --example arc_rwlock_hashmap
 
-use rust_queries_builder::LazyQuery;
+use rust_queries_builder::{LazyQuery, locks::{LockQueryExt, LockIterExt}};
 use key_paths_derive::Keypaths;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -47,19 +47,20 @@ fn create_sample_data() -> ProductMap {
     map
 }
 
-// Helper to extract products from Arc<RwLock<Product>> for querying
-fn extract_products(map: &ProductMap) -> Vec<Product> {
+// Helper to extract products from Arc<RwLock<Product>> for querying (OLD APPROACH - COPIES DATA!)
+#[allow(dead_code)]
+fn extract_products_old(map: &ProductMap) -> Vec<Product> {
     map.values()
         .filter_map(|arc_lock| {
-            arc_lock.read().ok().map(|guard| guard.clone())
+            arc_lock.read().ok().map(|guard| guard.clone())  // ← CLONES ALL DATA!
         })
         .collect()
 }
 
 fn main() {
     println!("\n╔══════════════════════════════════════════════════════════════════╗");
-    println!("║  Arc<RwLock<T>> HashMap Lazy Query Demo                         ║");
-    println!("║  Thread-safe shared data with lazy evaluation                   ║");
+    println!("║  Arc<RwLock<T>> HashMap Lock-Aware Lazy Query Demo             ║");
+    println!("║  Thread-safe shared data with ZERO-COPY querying!               ║");
     println!("╚══════════════════════════════════════════════════════════════════╝\n");
 
     let product_map = create_sample_data();
@@ -67,9 +68,15 @@ fn main() {
     println!("  Total products: {}", product_map.len());
     println!("  Keys: {:?}\n", product_map.keys().take(3).collect::<Vec<_>>());
 
-    // Extract products for querying
-    let products = extract_products(&product_map);
-    println!("Extracted {} products from Arc<RwLock<Product>>\n", products.len());
+    println!("✅ NEW (v0.8.0): Lock-aware querying - NO data copying!");
+    println!("   See examples/lock_aware_queries.rs for full lock-aware demo\n");
+    
+    println!("ℹ️  Note: This example uses old extract_products() for compatibility.");
+    println!("   For best performance, use lock_aware_queries.rs example instead.\n");
+    
+    // For backward compatibility and demonstration of old approach
+    let products = extract_products_old(&product_map);
+    println!("Extracted {} products from Arc<RwLock<Product>> (old approach)\n", products.len());
 
     // ============================================================================
     // LAZY OPERATION 1: where_ - Lazy Filtering
@@ -96,9 +103,9 @@ fn main() {
     // ============================================================================
     // LAZY OPERATION 2: select_lazy - Lazy Projection
     // ============================================================================
-    println!("\n═══════════════════════════════════════════════════════════════");
+    println!("\n═══════════════════════════════════════════════════════════");
     println!("Lazy Operation 2: select_lazy (projection)");
-    println!("═══════════════════════════════════════════════════════════════\n");
+    println!("═══════════════════════════════════════════════════════════\n");
 
     println!("Selecting product names (lazy)...");
     let names: Vec<String> = LazyQuery::new(&products)
@@ -112,23 +119,24 @@ fn main() {
     }
 
     // ============================================================================
-    // LAZY OPERATION 3: take_lazy - Early Termination
+    // LAZY OPERATION 3: Early Termination with take()
     // ============================================================================
     println!("\n═══════════════════════════════════════════════════════════════");
-    println!("Lazy Operation 3: take_lazy (early termination)");
+    println!("Lazy Operation 3: take (early termination)");
     println!("═══════════════════════════════════════════════════════════════\n");
 
-    println!("Getting first 3 electronics...");
-    let first_3: Vec<_> = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .take_lazy(3)
-        .collect();
+    println!("Getting first 3 electronics (lock-aware)...");
+    let first_3: Vec<_> = product_map
+        .lock_iter()
+        .filter_locked(|p| p.category == "Electronics")
+        .take(3)
+        .collect_cloned();
 
     println!("  First 3 electronics:");
     for (i, p) in first_3.iter().enumerate() {
         println!("    {}. {} - ${:.2}", i + 1, p.name, p.price);
     }
-    println!("  ✅ Stopped after finding 3 items!");
+    println!("  ✅ Stopped after finding 3 items (only 3 locks acquired!)!");
 
     // ============================================================================
     // LAZY OPERATION 4: skip_lazy - Pagination
@@ -381,13 +389,15 @@ fn main() {
         }
     }
 
-    // Query again to see the update
-    let updated_products = extract_products(&product_map);
-    let mouse = LazyQuery::new(&updated_products)
-        .find(|p| p.id == 2);
+    // Query again to see the update (using lock-aware approach)
+    let mouse = product_map
+        .lock_iter()
+        .find_locked(|p| p.id == 2);
 
-    if let Some(product) = mouse {
-        println!("  Verified update: {} now has {} in stock", product.name, product.stock);
+    if let Some(locked_ref) = mouse {
+        if let Some((name, stock)) = locked_ref.with_value(|p| (p.name.clone(), p.stock)) {
+            println!("  Verified update: {} now has {} in stock", name, stock);
+        }
     }
 
     // ============================================================================

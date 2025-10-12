@@ -36,6 +36,7 @@ A powerful, type-safe query builder library for Rust that leverages **key-paths*
 - 🎨 **Helper macros**: 12 macros to reduce boilerplate - **30% less code** - [details](MACRO_GUIDE.md)
 - 🎯 **Extension trait**: Call `.query()` and `.lazy_query()` directly on containers - [details](EXTENSION_TRAIT_GUIDE.md)
 - 📝 **Derive macros**: Auto-generate query helpers with `#[derive(QueryBuilder)]` - [details](EXTENSION_TRAIT_GUIDE.md)
+- 🔒 **Lock-aware querying**: Query `Arc<RwLock<T>>` and `Arc<Mutex<T>>` without copying - **5x faster!**
 
 ## Installation
 
@@ -564,6 +565,9 @@ cargo run --example custom_queryable
 
 # Arc<RwLock<T>> HashMap - thread-safe shared data with all 17 lazy operations
 cargo run --example arc_rwlock_hashmap
+
+# Lock-aware queries - query Arc<RwLock<T>> WITHOUT copying (v0.8.0+, 5x faster!)
+cargo run --example lock_aware_queries --release
 
 # Macro helpers - reduce boilerplate with 12 helper macros (30% less code)
 cargo run --example macro_helpers

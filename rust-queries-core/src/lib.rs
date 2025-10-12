@@ -47,6 +47,7 @@ pub mod lazy;
 pub mod queryable;
 pub mod ext;
 pub mod datetime;
+pub mod locks;
 
 #[macro_use]
 pub mod macros;
@@ -56,6 +57,7 @@ pub use join::JoinQuery;
 pub use lazy::LazyQuery;
 pub use queryable::Queryable;
 pub use ext::QueryExt;
+pub use locks::{LockValue, LockQueryExt, LockIterExt, LockedValueRef};
 
 // Re-export key-paths for convenience
 pub use key_paths_core::KeyPaths;

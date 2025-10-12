@@ -110,3 +110,7 @@ path = "examples/lock_aware_queries.rs"
 name = "sql_like_lock_queries"
 path = "examples/sql_like_lock_queries.rs"
 
+[[example]]
+name = "advanced_lock_sql"
+path = "examples/advanced_lock_sql.rs"
+

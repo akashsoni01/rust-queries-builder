@@ -404,6 +404,8 @@ let first_match: Vec<_> = products
 - **EXISTS**: Check existence
 - **FIRST**: Find first match
 - **Lazy**: Early termination with `lock_lazy_query()`
+- **JOINS**: INNER, LEFT, RIGHT, CROSS joins on locked data
+- **VIEWS**: Materialized views with caching and refresh
 
 ## DateTime Operations (v0.7.0)
 
@@ -632,6 +634,9 @@ cargo run --example lock_aware_queries --release
 
 # SQL-like lock queries - full SQL syntax on locked HashMaps (v0.8.0+)
 cargo run --example sql_like_lock_queries --release
+
+# Advanced lock SQL - joins, views, lazy queries on locked data (v0.8.0+)
+cargo run --example advanced_lock_sql --release
 
 # Macro helpers - reduce boilerplate with 12 helper macros (30% less code)
 cargo run --example macro_helpers

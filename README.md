@@ -535,6 +535,9 @@ cargo run --example lazy_datetime_operations --features datetime --release
 # DateTime helper functions - all datetime helpers with SQL equivalents (v0.7.0+)
 cargo run --example datetime_helper_functions --features datetime
 
+# Lazy datetime helpers - all helpers with lazy evaluation and performance benchmarks (v0.7.0+)
+cargo run --example lazy_datetime_helpers --features datetime --release
+
 # SQL comparison - see how SQL queries map to Rust Query Builder
 cargo run --example sql_comparison
 

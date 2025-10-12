@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "rust-queries-builder"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "chrono",
  "key-paths-core",
@@ -316,7 +316,7 @@ dependencies = [
 
 [[package]]
 name = "rust-queries-core"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "chrono",
  "key-paths-core",
@@ -327,7 +327,7 @@ dependencies = [
 
 [[package]]
 name = "rust-queries-derive"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "proc-macro2",
  "quote",

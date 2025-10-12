@@ -5,6 +5,11 @@
 use crate::locks::LockValue;
 use key_paths_core::KeyPaths;
 use std::marker::PhantomData;
+use std::collections::HashMap;
+use std::time::SystemTime;
+
+#[cfg(feature = "datetime")]
+use chrono::{DateTime, TimeZone};
 
 /// Lazy query for locked data with early termination.
 pub struct LockLazyQuery<'a, T: 'static, L, I>
@@ -537,6 +542,500 @@ where
             })
             .unwrap_or(false)
         }).count()
+    }
+
+    // ========================================================================
+    // DATETIME OPERATIONS - SystemTime
+    // ========================================================================
+
+    /// Filter by SystemTime being after a reference time.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the SystemTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = events
+    ///     .lock_lazy_query()
+    ///     .where_after_systemtime(Event::timestamp_r(), cutoff_time);
+    /// ```
+    pub fn where_after_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        self.where_(path, move |time| time > &reference)
+    }
+
+    /// Filter by SystemTime being before a reference time.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the SystemTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let old = events
+    ///     .lock_lazy_query()
+    ///     .where_before_systemtime(Event::timestamp_r(), cutoff_time);
+    /// ```
+    pub fn where_before_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        self.where_(path, move |time| time < &reference)
+    }
+
+    /// Filter by SystemTime being between two times (inclusive).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the SystemTime field
+    /// * `start` - The start time
+    /// * `end` - The end time
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let range = events
+    ///     .lock_lazy_query()
+    ///     .where_between_systemtime(Event::timestamp_r(), start, end);
+    /// ```
+    pub fn where_between_systemtime(
+        self,
+        path: KeyPaths<T, SystemTime>,
+        start: SystemTime,
+        end: SystemTime,
+    ) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        self.where_(path, move |time| time >= &start && time <= &end)
+    }
+
+    // ========================================================================
+    // ORDERING OPERATIONS (require T: Clone)
+    // ========================================================================
+
+    /// Orders results by a field in ascending order (terminal).
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned sorted copies.
+    /// This is a terminal operation that collects and sorts all matching items.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the field to order by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = products
+    ///     .lock_lazy_query()
+    ///     .where_(Product::stock_r(), |&s| s > 0)
+    ///     .order_by(Product::name_r());
+    /// ```
+    pub fn order_by<F>(self, path: KeyPaths<T, F>) -> Vec<T>
+    where
+        F: Ord + Clone + 'static,
+        T: Clone,
+    {
+        let mut results: Vec<T> = self.iter
+            .filter_map(|lock| lock.with_value(|item| item.clone()))
+            .collect();
+
+        results.sort_by_key(|item| path.get(item).cloned());
+        results
+    }
+
+    /// Orders results by a field in descending order (terminal).
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned sorted copies.
+    /// This is a terminal operation that collects and sorts all matching items.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the field to order by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = products
+    ///     .lock_lazy_query()
+    ///     .where_(Product::stock_r(), |&s| s > 0)
+    ///     .order_by_desc(Product::stock_r());
+    /// ```
+    pub fn order_by_desc<F>(self, path: KeyPaths<T, F>) -> Vec<T>
+    where
+        F: Ord + Clone + 'static,
+        T: Clone,
+    {
+        let mut results: Vec<T> = self.iter
+            .filter_map(|lock| lock.with_value(|item| item.clone()))
+            .collect();
+
+        results.sort_by(|a, b| {
+            let a_val = path.get(a).cloned();
+            let b_val = path.get(b).cloned();
+            b_val.cmp(&a_val)
+        });
+        results
+    }
+
+    /// Orders results by a float field in ascending order (terminal).
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned sorted copies.
+    /// This is a terminal operation that collects and sorts all matching items.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the f64 field to order by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = products
+    ///     .lock_lazy_query()
+    ///     .where_(Product::stock_r(), |&s| s > 0)
+    ///     .order_by_float(Product::price_r());
+    /// ```
+    pub fn order_by_float(self, path: KeyPaths<T, f64>) -> Vec<T>
+    where
+        T: Clone,
+    {
+        let mut results: Vec<T> = self.iter
+            .filter_map(|lock| lock.with_value(|item| item.clone()))
+            .collect();
+
+        results.sort_by(|a, b| {
+            let a_val = path.get(a).cloned().unwrap_or(0.0);
+            let b_val = path.get(b).cloned().unwrap_or(0.0);
+            a_val.partial_cmp(&b_val).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        results
+    }
+
+    /// Orders results by a float field in descending order (terminal).
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned sorted copies.
+    /// This is a terminal operation that collects and sorts all matching items.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the f64 field to order by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = products
+    ///     .lock_lazy_query()
+    ///     .where_(Product::stock_r(), |&s| s > 0)
+    ///     .order_by_float_desc(Product::rating_r());
+    /// ```
+    pub fn order_by_float_desc(self, path: KeyPaths<T, f64>) -> Vec<T>
+    where
+        T: Clone,
+    {
+        let mut results: Vec<T> = self.iter
+            .filter_map(|lock| lock.with_value(|item| item.clone()))
+            .collect();
+
+        results.sort_by(|a, b| {
+            let a_val = path.get(a).cloned().unwrap_or(0.0);
+            let b_val = path.get(b).cloned().unwrap_or(0.0);
+            b_val.partial_cmp(&a_val).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        results
+    }
+
+    // ========================================================================
+    // GROUPING OPERATIONS (require T: Clone)
+    // ========================================================================
+
+    /// Groups results by a field value (terminal).
+    /// 
+    /// **Note**: This method requires `T: Clone` as it creates owned copies in groups.
+    /// This is a terminal operation that collects all matching items into groups.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the field to group by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let by_category = products
+    ///     .lock_lazy_query()
+    ///     .where_(Product::stock_r(), |&s| s > 0)
+    ///     .group_by(Product::category_r());
+    /// 
+    /// for (category, products) in by_category {
+    ///     println!("{}: {} products", category, products.len());
+    /// }
+    /// 
+    /// // SQL equivalent: SELECT * FROM products WHERE stock > 0 GROUP BY category
+    /// ```
+    pub fn group_by<F>(self, path: KeyPaths<T, F>) -> HashMap<F, Vec<T>>
+    where
+        F: Eq + std::hash::Hash + Clone + 'static,
+        T: Clone,
+    {
+        let mut groups: HashMap<F, Vec<T>> = HashMap::new();
+
+        for lock in self.iter {
+            if let Some(item) = lock.with_value(|item| item.clone()) {
+                if let Some(key) = path.get(&item).cloned() {
+                    groups.entry(key).or_insert_with(Vec::new).push(item);
+                }
+            }
+        }
+
+        groups
+    }
+}
+
+// ========================================================================
+// DATETIME OPERATIONS - Chrono (only available with datetime feature)
+// ========================================================================
+
+#[cfg(feature = "datetime")]
+impl<'a, T: 'static, L, I> LockLazyQuery<'a, T, L, I>
+where
+    L: LockValue<T> + 'a,
+    I: Iterator<Item = &'a L> + 'a,
+{
+    /// Filter by DateTime being after a reference time.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = events
+    ///     .lock_lazy_query()
+    ///     .where_after(Event::timestamp_r(), cutoff_time);
+    /// ```
+    pub fn where_after<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| time > &reference)
+    }
+
+    /// Filter by DateTime being before a reference time.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let old = events
+    ///     .lock_lazy_query()
+    ///     .where_before(Event::timestamp_r(), cutoff_time);
+    /// ```
+    pub fn where_before<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| time < &reference)
+    }
+
+    /// Filter by DateTime being between two times (inclusive).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `start` - The start time
+    /// * `end` - The end time
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let range = events
+    ///     .lock_lazy_query()
+    ///     .where_between(Event::timestamp_r(), start, end);
+    /// ```
+    pub fn where_between<Tz>(
+        self,
+        path: KeyPaths<T, DateTime<Tz>>,
+        start: DateTime<Tz>,
+        end: DateTime<Tz>,
+    ) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| time >= &start && time <= &end)
+    }
+
+    /// Filter by DateTime being today.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `now` - The current DateTime to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let today = events
+    ///     .lock_lazy_query()
+    ///     .where_today(Event::timestamp_r(), Utc::now());
+    /// ```
+    pub fn where_today<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, now: DateTime<Tz>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| {
+            time.date_naive() == now.date_naive()
+        })
+    }
+
+    /// Filter by DateTime year.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `year` - The year to filter by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let this_year = events
+    ///     .lock_lazy_query()
+    ///     .where_year(Event::timestamp_r(), 2024);
+    /// ```
+    pub fn where_year<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, year: i32) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, move |time| time.year() == year)
+    }
+
+    /// Filter by DateTime month.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `month` - The month to filter by (1-12)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let december = events
+    ///     .lock_lazy_query()
+    ///     .where_month(Event::timestamp_r(), 12);
+    /// ```
+    pub fn where_month<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, month: u32) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, move |time| time.month() == month)
+    }
+
+    /// Filter by DateTime day.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `day` - The day to filter by (1-31)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let first = events
+    ///     .lock_lazy_query()
+    ///     .where_day(Event::timestamp_r(), 1);
+    /// ```
+    pub fn where_day<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, day: u32) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, move |time| time.day() == day)
+    }
+
+    /// Filter by weekend dates (Saturday and Sunday).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let weekend_events = events
+    ///     .lock_lazy_query()
+    ///     .where_weekend(Event::timestamp_r());
+    /// ```
+    pub fn where_weekend<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, |time| {
+            let weekday = time.weekday().num_days_from_monday();
+            weekday >= 5
+        })
+    }
+
+    /// Filter by weekday dates (Monday through Friday).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let weekday_events = events
+    ///     .lock_lazy_query()
+    ///     .where_weekday(Event::timestamp_r());
+    /// ```
+    pub fn where_weekday<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, |time| {
+            let weekday = time.weekday().num_days_from_monday();
+            weekday < 5
+        })
+    }
+
+    /// Filter by business hours (9 AM - 5 PM).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let business_hours = events
+    ///     .lock_lazy_query()
+    ///     .where_business_hours(Event::timestamp_r());
+    /// ```
+    pub fn where_business_hours<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Timelike;
+        self.where_(path, |time| {
+            let hour = time.hour();
+            hour >= 9 && hour < 17
+        })
     }
 }
 

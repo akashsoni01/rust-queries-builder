@@ -55,11 +55,11 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-queries-builder = "1.0.0"
+rust-queries-builder = "1.0.1"
 key-paths-derive = "0.5.0"
 
 # Optional: Enable datetime operations with chrono
-rust-queries-builder = { version = "1.0.0", features = ["datetime"] }
+rust-queries-builder = { version = "1.0.1", features = ["datetime"] }
 chrono = "0.4"
 
 # Optional: For async/tokio support
@@ -75,12 +75,12 @@ For faster builds (65% faster) and minimal dependencies:
 
 ```toml
 [dependencies]
-rust-queries-core = "1.0.0"
-rust-queries-derive = "1.0.0"  # Optional, only if using derive macros
+rust-queries-core = "1.0.1"
+rust-queries-derive = "1.0.1"  # Optional, only if using derive macros
 key-paths-derive = "0.5.0"
 
 # Optional: Enable datetime operations with chrono
-rust-queries-core = { version = "1.0.0", features = ["datetime"] }
+rust-queries-core = { version = "1.0.1", features = ["datetime"] }
 chrono = "0.4"
 
 # Optional: For async/tokio support
@@ -920,7 +920,7 @@ None! v1.0.0 is fully backward compatible with v0.9.0.
 rust-queries-builder = "0.9.0"
 
 # New (v1.0.0)
-rust-queries-builder = "1.0.0"
+rust-queries-builder = "1.0.1"
 ```
 
 All your existing code will work without modification!

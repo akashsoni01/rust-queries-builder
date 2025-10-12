@@ -319,7 +319,7 @@ where
 
 ```toml
 [dependencies]
-rust-queries-builder = { version = "1.0.0", features = ["parking_lot"] }
+rust-queries-builder = { version = "1.0.1", features = ["parking_lot"] }
 parking_lot = "0.12"
 ```
 
@@ -327,7 +327,7 @@ parking_lot = "0.12"
 
 ```toml
 [dependencies]
-rust-queries-builder = { version = "1.0.0", features = ["tokio"] }
+rust-queries-builder = { version = "1.0.1", features = ["tokio"] }
 tokio = { version = "1.35", features = ["sync"] }
 ```
 
@@ -335,7 +335,7 @@ tokio = { version = "1.35", features = ["sync"] }
 
 ```toml
 [dependencies]
-rust-queries-builder = { version = "1.0.0", features = ["parking_lot", "tokio"] }
+rust-queries-builder = { version = "1.0.1", features = ["parking_lot", "tokio"] }
 parking_lot = "0.12"
 tokio = { version = "1.35", features = ["sync"] }
 ```

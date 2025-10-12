@@ -433,9 +433,232 @@ fn main() {
     }
     
     // ========================================================================
+    // PART 5: SQL LIKE Pattern Matching
+    // ========================================================================
+    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    println!("PART 5: SQL LIKE Pattern Matching");
+    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    
+    println!("--- [1] LIKE '%word%' - Contains pattern ---");
+    
+    // Find products containing "Desk" in name
+    let desk_products: Vec<_> = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| name.contains("Desk"))
+        .all();
+    
+    println!("  Products containing 'Desk':");
+    for p in &desk_products {
+        println!("    • {} - ${:.2}", p.name, p.price);
+    }
+    println!("  SQL: SELECT * FROM products WHERE name LIKE '%Desk%';\n");
+    
+    println!("--- [2] LIKE 'word%' - Starts with pattern ---");
+    
+    // Find products starting with "Wireless"
+    let wireless_products: Vec<_> = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| name.starts_with("Wireless"))
+        .all();
+    
+    println!("  Products starting with 'Wireless':");
+    for p in &wireless_products {
+        println!("    • {} - ${:.2}", p.name, p.price);
+    }
+    println!("  SQL: SELECT * FROM products WHERE name LIKE 'Wireless%';\n");
+    
+    println!("--- [3] LIKE '%word' - Ends with pattern ---");
+    
+    // Find products ending with "Pro"
+    let pro_products: Vec<_> = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| name.ends_with("Pro"))
+        .all();
+    
+    println!("  Products ending with 'Pro':");
+    for p in &pro_products {
+        println!("    • {} - ${:.2}", p.name, p.price);
+    }
+    println!("  SQL: SELECT * FROM products WHERE name LIKE '%Pro';\n");
+    
+    println!("--- [4] LIKE Pattern with COUNT ---");
+    
+    // Count products with specific patterns
+    let keyboard_count = products
+        .lock_lazy_query()
+        .count_where(Product::name_r(), |name| 
+            name.to_lowercase().contains("keyboard")
+        );
+    
+    let chair_count = products
+        .lock_lazy_query()
+        .count_where(Product::name_r(), |name| 
+            name.to_lowercase().contains("chair")
+        );
+    
+    println!("  Products with 'keyboard': {}", keyboard_count);
+    println!("  Products with 'chair': {}", chair_count);
+    println!("  SQL: SELECT COUNT(*) FROM products WHERE LOWER(name) LIKE '%keyboard%';\n");
+    
+    println!("--- [5] Case-insensitive LIKE (ILIKE) ---");
+    
+    // Case-insensitive search for "MOUSE" / "mouse" / "Mouse"
+    let mouse_products: Vec<_> = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| 
+            name.to_lowercase().contains("mouse")
+        )
+        .all();
+    
+    println!("  Products containing 'mouse' (case-insensitive):");
+    for p in &mouse_products {
+        println!("    • {} - ${:.2}", p.name, p.price);
+    }
+    println!("  SQL (PostgreSQL): SELECT * FROM products WHERE name ILIKE '%mouse%';\n");
+    
+    println!("--- [6] Multiple LIKE patterns (OR) ---");
+    
+    // Find products matching multiple patterns
+    let office_items: Vec<_> = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| {
+            name.contains("Desk") || 
+            name.contains("Chair") || 
+            name.contains("Lamp")
+        })
+        .all();
+    
+    println!("  Office items (Desk/Chair/Lamp):");
+    for p in &office_items {
+        println!("    • {} - ${:.2}", p.name, p.price);
+    }
+    println!("  SQL: SELECT * FROM products");
+    println!("       WHERE name LIKE '%Desk%' OR name LIKE '%Chair%' OR name LIKE '%Lamp%';\n");
+    
+    println!("--- [7] LIKE with aggregations ---");
+    
+    // Average price of products with "Wireless" in name
+    let wireless_avg = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| name.contains("Wireless"))
+        .avg(Product::price_r());
+    
+    // Total value of products ending with "Pro"
+    let pro_total: f64 = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| name.ends_with("Pro"))
+        .sum(Product::price_r());
+    
+    println!("  Average price of 'Wireless' products: ${:.2}", 
+             wireless_avg.unwrap_or(0.0));
+    println!("  Total value of 'Pro' products: ${:.2}", pro_total);
+    println!("  SQL: SELECT AVG(price) FROM products WHERE name LIKE 'Wireless%';\n");
+    
+    println!("--- [8] LIKE with EXISTS ---");
+    
+    // Check if products with pattern exist
+    let has_4k = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| name.contains("4K"))
+        .exists();
+    
+    let has_gaming = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| 
+            name.to_lowercase().contains("gaming")
+        )
+        .exists();
+    
+    println!("  Has 4K products: {}", if has_4k { "Yes ✓" } else { "No ✗" });
+    println!("  Has gaming products: {}", if has_gaming { "Yes ✓" } else { "No ✗" });
+    println!("  SQL: SELECT EXISTS(SELECT 1 FROM products WHERE name LIKE '%4K%');\n");
+    
+    println!("--- [9] LIKE pattern + category filter ---");
+    
+    // Electronics with "USB" in name
+    let usb_electronics: Vec<_> = products
+        .lock_lazy_query()
+        .where_(Product::category_r(), |c| c == "Electronics")
+        .where_(Product::name_r(), |name| 
+            name.to_uppercase().contains("USB")
+        )
+        .all();
+    
+    println!("  USB Electronics:");
+    for p in &usb_electronics {
+        println!("    • {} - ${:.2} - {} in stock", p.name, p.price, p.stock);
+    }
+    println!("  SQL: SELECT * FROM products");
+    println!("       WHERE category = 'Electronics' AND UPPER(name) LIKE '%USB%';\n");
+    
+    println!("--- [10] Complex pattern matching ---");
+    
+    // Find products with specific word patterns and conditions
+    let premium_electronic_devices: Vec<_> = products
+        .lock_lazy_query()
+        .where_(Product::category_r(), |c| c == "Electronics")
+        .where_(Product::name_r(), |name| {
+            let lower = name.to_lowercase();
+            (lower.contains("laptop") || 
+             lower.contains("monitor") || 
+             lower.contains("keyboard")) &&
+            !lower.contains("wireless")
+        })
+        .where_(Product::price_r(), |&p| p > 100.0)
+        .all();
+    
+    println!("  Premium electronic devices (>$100, not wireless):");
+    for p in &premium_electronic_devices {
+        println!("    • {} - ${:.2}", p.name, p.price);
+    }
+    println!("  Complex pattern matching with multiple conditions!");
+    println!();
+    
+    println!("--- [11] LIKE with DISTINCT ---");
+    
+    // Get unique categories of products containing specific words
+    let electronics_with_patterns: Vec<String> = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| {
+            let lower = name.to_lowercase();
+            lower.contains("pro") || lower.contains("4k") || lower.contains("mechanical")
+        })
+        .distinct(Product::category_r());
+    
+    println!("  Categories with premium/specialty items:");
+    for cat in &electronics_with_patterns {
+        println!("    • {}", cat);
+    }
+    println!("  SQL: SELECT DISTINCT category FROM products");
+    println!("       WHERE name LIKE '%Pro%' OR name LIKE '%4K%' OR name LIKE '%Mechanical%';\n");
+    
+    println!("--- [12] Performance: LIKE with early termination ---");
+    
+    // Find first product matching pattern - stops immediately!
+    let first_keyboard = products
+        .lock_lazy_query()
+        .find(Product::name_r(), |name| 
+            name.to_lowercase().contains("keyboard")
+        );
+    
+    if let Some(p) = first_keyboard {
+        println!("  First keyboard found: {} (early termination! ⚡)", p.name);
+    }
+    
+    // Check if pattern exists - stops at first match!
+    let has_monitor = products
+        .lock_lazy_query()
+        .where_(Product::name_r(), |name| name.contains("Monitor"))
+        .exists();
+    
+    println!("  Has monitors: {} (stopped at first match!)", 
+             if has_monitor { "Yes ✓" } else { "No ✗" });
+    println!("  Much faster than LIKE with COUNT(*) > 0!\n");
+
+    // ========================================================================
     // Summary
     // ========================================================================
-    println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("✓ Demo Complete!");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
     
@@ -457,6 +680,17 @@ fn main() {
     println!("  ✅ find() - Search with condition");
     println!("  ✅ count_where() - Conditional counting");
     
+    println!("\n🔤 LIKE Pattern Matching Demonstrated:");
+    println!("  ✅ contains() - SQL: LIKE '%word%'");
+    println!("  ✅ starts_with() - SQL: LIKE 'word%'");
+    println!("  ✅ ends_with() - SQL: LIKE '%word'");
+    println!("  ✅ Case-insensitive - SQL: ILIKE");
+    println!("  ✅ Multiple patterns (OR logic)");
+    println!("  ✅ LIKE + aggregations (AVG, SUM)");
+    println!("  ✅ LIKE + EXISTS (early termination)");
+    println!("  ✅ LIKE + DISTINCT");
+    println!("  ✅ Complex pattern matching with negation");
+    
     println!("\n💡 Key Benefits:");
     println!("  • Lazy evaluation - only processes what's needed");
     println!("  • Early termination - stops at first match for exists/find");
@@ -470,5 +704,8 @@ fn main() {
     println!("  • Efficient existence checks");
     println!("  • Statistical analysis");
     println!("  • Business intelligence queries");
+    println!("  • Text search and pattern matching");
+    println!("  • Product catalogs and inventory systems");
+    println!("  • Full-text search scenarios");
 }
 

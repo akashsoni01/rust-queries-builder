@@ -5,6 +5,10 @@
 
 use key_paths_core::KeyPaths;
 use std::collections::HashMap;
+use std::time::SystemTime;
+
+#[cfg(feature = "datetime")]
+use chrono::{DateTime, TimeZone};
 
 /// A query builder for filtering, selecting, ordering, grouping, and aggregating data.
 ///
@@ -310,6 +314,285 @@ impl<'a, T: 'static> Query<'a, T> {
         self.data
             .iter()
             .any(|item| self.filters.iter().all(|f| f(item)))
+    }
+
+    // DateTime operations for SystemTime
+    /// Filter by SystemTime being after a reference time.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the SystemTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = query.where_after_systemtime(Event::timestamp_r(), &cutoff_time);
+    /// ```
+    pub fn where_after_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> Self {
+        self.where_(path, move |time| time > &reference)
+    }
+
+    /// Filter by SystemTime being before a reference time.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the SystemTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let old = query.where_before_systemtime(Event::timestamp_r(), &cutoff_time);
+    /// ```
+    pub fn where_before_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> Self {
+        self.where_(path, move |time| time < &reference)
+    }
+
+    /// Filter by SystemTime being between two times (inclusive).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the SystemTime field
+    /// * `start` - The start time
+    /// * `end` - The end time
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let range = query.where_between_systemtime(Event::timestamp_r(), &start, &end);
+    /// ```
+    pub fn where_between_systemtime(
+        self,
+        path: KeyPaths<T, SystemTime>,
+        start: SystemTime,
+        end: SystemTime,
+    ) -> Self {
+        self.where_(path, move |time| time >= &start && time <= &end)
+    }
+}
+
+// DateTime operations with chrono (only available with datetime feature)
+#[cfg(feature = "datetime")]
+impl<'a, T: 'static> Query<'a, T> {
+    /// Filter by DateTime being after a reference time.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = query.where_after(Event::timestamp_r(), &cutoff_time);
+    /// ```
+    pub fn where_after<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| time > &reference)
+    }
+
+    /// Filter by DateTime being before a reference time.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `reference` - The reference time to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let old = query.where_before(Event::timestamp_r(), &cutoff_time);
+    /// ```
+    pub fn where_before<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| time < &reference)
+    }
+
+    /// Filter by DateTime being between two times (inclusive).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `start` - The start time
+    /// * `end` - The end time
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let range = query.where_between(Event::timestamp_r(), &start, &end);
+    /// ```
+    pub fn where_between<Tz>(
+        self,
+        path: KeyPaths<T, DateTime<Tz>>,
+        start: DateTime<Tz>,
+        end: DateTime<Tz>,
+    ) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| time >= &start && time <= &end)
+    }
+
+    /// Filter by DateTime being today.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `now` - The current DateTime to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let today = query.where_today(Event::timestamp_r(), &Utc::now());
+    /// ```
+    pub fn where_today<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, now: DateTime<Tz>) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        self.where_(path, move |time| {
+            time.date_naive() == now.date_naive()
+        })
+    }
+
+    /// Filter by DateTime year.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `year` - The year to filter by
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let this_year = query.where_year(Event::timestamp_r(), 2024);
+    /// ```
+    pub fn where_year<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, year: i32) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, move |time| time.year() == year)
+    }
+
+    /// Filter by DateTime month.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `month` - The month to filter by (1-12)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let december = query.where_month(Event::timestamp_r(), 12);
+    /// ```
+    pub fn where_month<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, month: u32) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, move |time| time.month() == month)
+    }
+
+    /// Filter by DateTime day.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    /// * `day` - The day to filter by (1-31)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let first = query.where_day(Event::timestamp_r(), 1);
+    /// ```
+    pub fn where_day<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, day: u32) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, move |time| time.day() == day)
+    }
+
+    /// Filter by weekend dates (Saturday and Sunday).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let weekend_events = query.where_weekend(Event::timestamp_r());
+    /// ```
+    pub fn where_weekend<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, |time| {
+            let weekday = time.weekday().num_days_from_monday();
+            weekday >= 5
+        })
+    }
+
+    /// Filter by weekday dates (Monday through Friday).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let weekday_events = query.where_weekday(Event::timestamp_r());
+    /// ```
+    pub fn where_weekday<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Datelike;
+        self.where_(path, |time| {
+            let weekday = time.weekday().num_days_from_monday();
+            weekday < 5
+        })
+    }
+
+    /// Filter by business hours (9 AM - 5 PM).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the DateTime field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let business_hours = query.where_business_hours(Event::timestamp_r());
+    /// ```
+    pub fn where_business_hours<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> Self
+    where
+        Tz: TimeZone + 'static,
+        Tz::Offset: std::fmt::Display,
+    {
+        use chrono::Timelike;
+        self.where_(path, |time| {
+            let hour = time.hour();
+            hour >= 9 && hour < 17
+        })
     }
 }
 

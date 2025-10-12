@@ -27,6 +27,7 @@ A powerful, type-safe query builder library for Rust that leverages **key-paths*
 - 🧮 **Rich aggregations**: COUNT, SUM, AVG, MIN, MAX
 - 📄 **Pagination**: LIMIT and SKIP operations
 - 🔗 **Join operations**: INNER JOIN, LEFT JOIN, RIGHT JOIN, CROSS JOIN
+- ⏰ **DateTime operations**: Filter by dates, times, weekdays, business hours - [details](DATETIME_GUIDE.md)
 - ⚡ **Zero-cost abstractions**: Leverages Rust's zero-cost abstractions
 - 🎯 **Fluent API**: Chain operations naturally
 - 🚀 **Clone-free operations**: Most operations work without `Clone` - [details](OPTIMIZATION.md)
@@ -44,8 +45,12 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rust-queries-builder = "0.6.0"
+rust-queries-builder = "0.7.0"
 key-paths-derive = "0.5.0"
+
+# Optional: Enable datetime operations with chrono
+rust-queries-builder = { version = "0.7.0", features = ["datetime"] }
+chrono = "0.4"
 ```
 
 ### Option 2: Individual Crates (Recommended for Libraries/POCs)
@@ -54,9 +59,13 @@ For faster builds (65% faster) and minimal dependencies:
 
 ```toml
 [dependencies]
-rust-queries-core = "0.6.0"
-rust-queries-derive = "0.6.0"  # Optional, only if using derive macros
+rust-queries-core = "0.7.0"
+rust-queries-derive = "0.7.0"  # Optional, only if using derive macros
 key-paths-derive = "0.5.0"
+
+# Optional: Enable datetime operations with chrono
+rust-queries-core = { version = "0.7.0", features = ["datetime"] }
+chrono = "0.4"
 ```
 
 **⚠️ Important**: When using individual crates, import from the correct locations:
@@ -334,6 +343,60 @@ let high_value = JoinQuery::new(&users, &orders)
 - **Cross Join**: Returns Cartesian product of both collections
 - **Join Where**: Inner join with additional predicates
 
+## DateTime Operations (NEW in v0.7.0!)
+
+Query by dates, times, weekdays, and business hours with optional chrono support:
+
+```rust
+use rust_queries_builder::Query;
+use chrono::{Utc, Duration};
+use key_paths_derive::Keypaths;
+
+#[derive(Keypaths)]
+struct Event {
+    id: u32,
+    title: String,
+    scheduled_at: DateTime<Utc>,
+    category: String,
+}
+
+let events = vec![/* ... */];
+let now = Utc::now();
+
+// Events scheduled in the next 7 days
+let upcoming = Query::new(&events)
+    .where_between(
+        Event::scheduled_at_r(), 
+        now, 
+        now + Duration::days(7)
+    );
+
+// Weekend events
+let weekend = Query::new(&events)
+    .where_weekend(Event::scheduled_at_r());
+
+// Work events during business hours on weekdays
+let work_hours = Query::new(&events)
+    .where_(Event::category_r(), |c| c == "Work")
+    .where_weekday(Event::scheduled_at_r())
+    .where_business_hours(Event::scheduled_at_r());
+
+// Events in December 2024
+let december = Query::new(&events)
+    .where_year(Event::scheduled_at_r(), 2024)
+    .where_month(Event::scheduled_at_r(), 12);
+```
+
+### Available DateTime Operations
+
+- **Date Comparisons**: `where_after`, `where_before`, `where_between`
+- **Date Components**: `where_year`, `where_month`, `where_day`
+- **Day Type**: `where_weekend`, `where_weekday`, `where_today`
+- **Time Filters**: `where_business_hours`
+- **SystemTime Support**: Basic operations without feature flags
+
+See the [DateTime Guide](DATETIME_GUIDE.md) for complete documentation and examples.
+
 ## Advanced Examples
 
 ### Complex Multi-Stage Query
@@ -402,6 +465,7 @@ for (category, total) in order_products {
 
 ### Query Methods
 
+**Basic Operations:**
 - `new(data: &[T])` - Create a new query
 - `where_(path, predicate)` - Filter by predicate
 - `all()` - Get all matching items
@@ -409,17 +473,40 @@ for (category, total) in order_products {
 - `count()` - Count matching items
 - `limit(n)` - Limit results
 - `skip(n)` - Skip results for pagination
+- `exists()` - Check if any match
+
+**Ordering:**
 - `order_by(path)` - Sort ascending
 - `order_by_desc(path)` - Sort descending
 - `order_by_float(path)` - Sort f64 ascending
 - `order_by_float_desc(path)` - Sort f64 descending
+
+**Projection & Grouping:**
 - `select(path)` - Project field
 - `group_by(path)` - Group by field
+
+**Aggregations:**
 - `sum(path)` - Sum numeric field
 - `avg(path)` - Average of f64 field
 - `min(path)` / `max(path)` - Min/max of Ord field
 - `min_float(path)` / `max_float(path)` - Min/max of f64 field
-- `exists()` - Check if any match
+
+**DateTime Operations (with `datetime` feature):**
+- `where_after(path, time)` - Filter after datetime
+- `where_before(path, time)` - Filter before datetime
+- `where_between(path, start, end)` - Filter within range
+- `where_today(path, now)` - Filter for today
+- `where_year(path, year)` - Filter by year
+- `where_month(path, month)` - Filter by month (1-12)
+- `where_day(path, day)` - Filter by day (1-31)
+- `where_weekend(path)` - Filter for weekends
+- `where_weekday(path)` - Filter for weekdays
+- `where_business_hours(path)` - Filter for business hours (9 AM - 5 PM)
+
+**DateTime Operations (SystemTime, always available):**
+- `where_after_systemtime(path, time)` - Filter after SystemTime
+- `where_before_systemtime(path, time)` - Filter before SystemTime
+- `where_between_systemtime(path, start, end)` - Filter within range
 
 ### JoinQuery Methods
 
@@ -438,6 +525,9 @@ cargo run --example advanced_query_builder
 
 # Join operations example
 cargo run --example join_query_builder
+
+# DateTime operations - filter by dates, times, weekdays (v0.7.0+, requires datetime feature)
+cargo run --example datetime_operations --features datetime
 
 # SQL comparison - see how SQL queries map to Rust Query Builder
 cargo run --example sql_comparison

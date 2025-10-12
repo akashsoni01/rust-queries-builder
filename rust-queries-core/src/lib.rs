@@ -46,6 +46,7 @@ pub mod join;
 pub mod lazy;
 pub mod queryable;
 pub mod ext;
+pub mod datetime;
 
 #[macro_use]
 pub mod macros;

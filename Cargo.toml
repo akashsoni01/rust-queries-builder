@@ -16,9 +16,11 @@ rust-queries-derive = { path = "rust-queries-derive", version = "0.7.0" }
 # Re-exported for convenience
 key-paths-core = "1.0.1"
 key-paths-derive = "0.5.0"
+chrono = { version = "0.4", optional = true }
 
 [features]
 default = []
+datetime = ["rust-queries-core/datetime", "chrono"]
 
 [dev-dependencies]
 # serde = { version = "1.0", features = ["derive"] }
@@ -83,4 +85,8 @@ path = "examples/derive_and_ext.rs"
 [[example]]
 name = "individual_crates"
 path = "examples/individual_crates.rs"
+
+[[example]]
+name = "datetime_operations"
+path = "examples/datetime_operations.rs"
 

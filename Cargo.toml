@@ -94,3 +94,7 @@ path = "examples/datetime_operations.rs"
 name = "lazy_datetime_operations"
 path = "examples/lazy_datetime_operations.rs"
 
+[[example]]
+name = "datetime_helper_functions"
+path = "examples/datetime_helper_functions.rs"
+

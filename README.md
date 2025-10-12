@@ -532,6 +532,9 @@ cargo run --example datetime_operations --features datetime
 # Lazy DateTime operations - efficient datetime queries with early termination (v0.7.0+)
 cargo run --example lazy_datetime_operations --features datetime --release
 
+# DateTime helper functions - all datetime helpers with SQL equivalents (v0.7.0+)
+cargo run --example datetime_helper_functions --features datetime
+
 # SQL comparison - see how SQL queries map to Rust Query Builder
 cargo run --example sql_comparison
 

@@ -321,6 +321,8 @@ dependencies = [
  "chrono",
  "key-paths-core",
  "key-paths-derive",
+ "parking_lot",
+ "tokio",
 ]
 
 [[package]]

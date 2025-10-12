@@ -47,6 +47,38 @@ where
     }
 
     /// Map to a field value (lazy).
+    /// 
+    /// This allows you to select only specific fields from locked data without
+    /// cloning the entire object. Perfect for projecting data efficiently.
+    /// 
+    /// # Example
+    /// 
+    /// ```ignore
+    /// // Select only product names (not full objects)
+    /// let names: Vec<String> = products
+    ///     .lock_lazy_query()
+    ///     .where_(Product::price_r(), |&p| p > 100.0)
+    ///     .select_lazy(Product::name_r())
+    ///     .collect();
+    /// 
+    /// // Select only IDs  
+    /// let ids: Vec<u32> = products
+    ///     .lock_lazy_query()
+    ///     .where_(Product::stock_r(), |&s| s > 0)
+    ///     .select_lazy(Product::id_r())
+    ///     .take(10)
+    ///     .collect();
+    /// 
+    /// // Select prices and compute sum
+    /// let total: f64 = products
+    ///     .lock_lazy_query()
+    ///     .where_(Product::category_r(), |c| c == "Electronics")
+    ///     .select_lazy(Product::price_r())
+    ///     .sum();
+    /// ```
+    /// 
+    /// **Performance Note**: This is much more efficient than collecting full objects
+    /// and then extracting fields, as it only clones the specific field value.
     pub fn select_lazy<F>(self, path: KeyPaths<T, F>) -> impl Iterator<Item = F> + 'a
     where
         F: Clone + 'static,
@@ -101,6 +133,25 @@ where
         self.iter
             .filter_map(|lock| lock.with_value(|item| item.clone()))
             .collect()
+    }
+
+    /// Get all matching items (alias for collect, similar to LockQuery::all).
+    /// 
+    /// This provides a familiar API for users coming from LockQuery.
+    /// 
+    /// # Example
+    /// 
+    /// ```ignore
+    /// let all_items: Vec<Product> = products
+    ///     .lock_lazy_query()
+    ///     .where_(Product::price_r(), |&p| p > 100.0)
+    ///     .all();
+    /// ```
+    pub fn all(self) -> Vec<T>
+    where
+        T: Clone,
+    {
+        self.collect()
     }
 }
 

@@ -257,6 +257,17 @@ where
         self.iter.all(move |item| predicate(item))
     }
 
+    /// Collects all items into a vector (terminal operation - executes query).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let results: Vec<&Product> = query.all();
+    /// ```
+    pub fn all(self) -> Vec<&'a T> {
+        self.iter.collect()
+    }
+
     /// Converts to a standard iterator for further chaining.
     ///
     /// # Example

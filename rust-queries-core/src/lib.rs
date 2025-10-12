@@ -52,6 +52,7 @@ pub mod lock_query;
 pub mod lock_lazy;
 pub mod lock_join;
 pub mod lock_view;
+pub mod lock_ext;
 
 #[macro_use]
 pub mod macros;
@@ -66,6 +67,21 @@ pub use lock_query::{LockQuery, LockQueryable, LockLazyQueryable};
 pub use lock_lazy::LockLazyQuery;
 pub use lock_join::{LockJoinQuery, LockJoinable, LockJoinableCollection};
 pub use lock_view::{LockView, MaterializedLockView};
+
+// Re-export lock extensions for parking_lot and tokio
+#[cfg(feature = "parking_lot")]
+pub use lock_ext::{
+    ParkingLotRwLockWrapper, ParkingLotMutexWrapper,
+    ParkingLotQueryExt, ParkingLotMutexQueryExt,
+    ParkingLotJoinExt, ParkingLotMutexJoinExt,
+};
+
+#[cfg(feature = "tokio")]
+pub use lock_ext::{
+    TokioRwLockWrapper, TokioMutexWrapper,
+    TokioLockQueryExt, TokioMutexQueryExt,
+    TokioLockJoinExt, TokioMutexJoinExt,
+};
 
 // Re-export key-paths for convenience
 pub use key_paths_core::KeyPaths;

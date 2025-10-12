@@ -5,6 +5,7 @@
 
 use rust_queries_builder::{Query, JoinQuery};
 use key_paths_derive::Keypaths;
+use rust_queries_core::QueryExt;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Keypaths)]

@@ -130,3 +130,7 @@ path = "examples/lock_extensions_demo.rs"
 name = "parking_lot_support"
 path = "examples/parking_lot_support.rs"
 
+[[example]]
+name = "lazy_aggregators_demo"
+path = "examples/lazy_aggregators_demo.rs"
+

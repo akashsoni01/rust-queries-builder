@@ -2,6 +2,10 @@
 
 A powerful, type-safe query builder library for Rust that leverages **key-paths** for SQL-like operations on in-memory collections. This library brings the expressiveness of SQL to Rust's collections with compile-time type safety.
 
+> 🔐 **v0.9.0 - Universal Lock Support!** Extended to tokio and parking_lot locks (189x lazy speedup) - [see lock types guide](LOCK_TYPES_COMPLETE_GUIDE.md)
+
+> 🎯 **v0.8.0 - Lock-Aware Queries!** SQL syntax on `HashMap<K, Arc<RwLock<V>>>` with JOINs and VIEWs - [see guide](SQL_LIKE_LOCKS_GUIDE.md)
+
 > 🎯 **v0.5.0 - Extension Trait & Derive Macros!** Call `.query()` and `.lazy_query()` directly on containers - [see extension guide](EXTENSION_TRAIT_GUIDE.md)
 
 > ⚡ **v0.5.0 - Build Optimized!** Split into 3 crates - **65% faster builds**, **6KB umbrella crate** - [see build guide](BUILD_OPTIMIZATION.md)

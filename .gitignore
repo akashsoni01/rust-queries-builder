@@ -2,3 +2,5 @@
 /target
 /rust-queries-derive/target
 /rust-queries-core/target
+*.lock
+*.lock

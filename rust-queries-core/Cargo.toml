@@ -1,6 +1,6 @@
 [package]
 name = "rust-queries-core"
-version = "1.0.3"
+version = "1.0.4"
 edition = "2021"
 authors = ["codefonsi<codefonsi@gmail.com>"]
 description = "Core functionality for rust-queries-builder - type-safe query builder for Rust collections"
@@ -10,8 +10,8 @@ keywords = ["query", "builder", "database", "sql", "keypaths"]
 categories = ["database", "data-structures"]
 
 [dependencies]
-key-paths-core = "1.0.1"
-key-paths-derive = "0.5.0"
+key-paths-core = "1.0.2"
+key-paths-derive = "0.6.0"
 chrono = { version = "0.4", optional = true }
 parking_lot = { version = "0.12", optional = true }
 tokio = { version = "1.35", features = ["sync"], optional = true }

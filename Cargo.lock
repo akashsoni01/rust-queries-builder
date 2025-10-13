@@ -159,15 +159,15 @@ dependencies = [
 
 [[package]]
 name = "key-paths-core"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "233ee033155bb0cf8332c77ba58dc49ee928ceccaf230bac5eea9cd42bff6d28"
+checksum = "ff7d9e2a017e8a871792d9759ce442fb6e254c1076bf2dfc54a8a03839bac593"
 
 [[package]]
 name = "key-paths-derive"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9951facec01891582869a1b03d3e41c8272b1c78619cf8154b8dcd0bda9842a3"
+checksum = "7034a164c4f49a15597d6dd7121ce4996fc23eb738bef87fb9c4327a66162184"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "rust-queries-builder"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "chrono",
  "key-paths-core",
@@ -316,7 +316,7 @@ dependencies = [
 
 [[package]]
 name = "rust-queries-core"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "chrono",
  "key-paths-core",
@@ -327,7 +327,7 @@ dependencies = [
 
 [[package]]
 name = "rust-queries-derive"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "proc-macro2",
  "quote",

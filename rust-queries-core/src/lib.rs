@@ -61,7 +61,7 @@ pub use query::{Query, QueryWithSkip};
 pub use join::JoinQuery;
 pub use lazy::LazyQuery;
 pub use queryable::Queryable;
-pub use ext::QueryExt;
+pub use ext::{QueryExt, QueryableExt};
 pub use locks::{LockValue, LockQueryExt, LockIterExt, LockedValueRef};
 pub use lock_query::{LockQuery, LockQueryable, LockLazyQueryable};
 pub use lock_lazy::LockLazyQuery;

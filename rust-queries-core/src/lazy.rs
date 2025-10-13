@@ -59,6 +59,29 @@ impl<'a, T: 'static> LazyQuery<'a, T, std::slice::Iter<'a, T>> {
 
 impl<'a, T: 'static, I> LazyQuery<'a, T, I>
 where
+    I: Iterator<Item = &'a T>,
+{
+    /// Creates a new lazy query from an iterator.
+    ///
+    /// This is useful for creating LazyQuery instances from custom iterators
+    /// or for implementing extension traits.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let iter = vec![1, 2, 3].iter();
+    /// let query = LazyQuery::from_iter(iter);
+    /// ```
+    pub fn from_iter(iter: I) -> Self {
+        Self {
+            iter,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a, T: 'static, I> LazyQuery<'a, T, I>
+where
     I: Iterator<Item = &'a T> + 'a,
 {
     /// Adds a filter predicate (lazy - not executed yet).

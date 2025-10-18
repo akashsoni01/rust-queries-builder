@@ -13,8 +13,8 @@
 //!
 //! let user_orders = LockJoinQuery::new(&users, &orders)
 //!     .inner_join(
-//!         User::id_r(),
-//!         Order::user_id_r(),
+//!         User::id(),
+//!         Order::user_id(),
 //!         |user, order| (user.name.clone(), order.total)
 //!     );
 //! ```
@@ -58,8 +58,8 @@ where
     /// ```ignore
     /// let results = LockJoinQuery::new(&users, &orders)
     ///     .inner_join(
-    ///         User::id_r(),
-    ///         Order::user_id_r(),
+    ///         User::id(),
+    ///         Order::user_id(),
     ///         |user, order| (user.name.clone(), order.total)
     ///     );
     /// ```
@@ -100,8 +100,8 @@ where
     /// ```ignore
     /// let results = LockJoinQuery::new(&users, &orders)
     ///     .left_join(
-    ///         User::id_r(),
-    ///         Order::user_id_r(),
+    ///         User::id(),
+    ///         Order::user_id(),
     ///         |user, order_opt| match order_opt {
     ///             Some(order) => format!("{} has order {}", user.name, order.id),
     ///             None => format!("{} has no orders", user.name),
@@ -266,15 +266,15 @@ mod tests {
     use super::*;
     use std::sync::{Arc, RwLock};
     use std::collections::HashMap;
-    use key_paths_derive::Keypaths;
+    use key_paths_derive::Keypath;
 
-    #[derive(Clone, Keypaths)]
+    #[derive(Clone, Keypath)]
     struct User {
         id: u32,
         name: String,
     }
 
-    #[derive(Clone, Keypaths)]
+    #[derive(Clone, Keypath)]
     struct Order {
         id: u32,
         user_id: u32,
@@ -303,8 +303,8 @@ mod tests {
         
         let results = LockJoinQuery::new(user_locks, order_locks)
             .inner_join(
-                User::id_r(),
-                Order::user_id_r(),
+                User::id(),
+                Order::user_id(),
                 |user, order| (user.name.clone(), order.total)
             );
 
@@ -320,8 +320,8 @@ mod tests {
         
         let results = LockJoinQuery::new(user_locks, order_locks)
             .left_join(
-                User::id_r(),
-                Order::user_id_r(),
+                User::id(),
+                Order::user_id(),
                 |user, order_opt| match order_opt {
                     Some(_) => format!("{} has order", user.name),
                     None => format!("{} no orders", user.name),

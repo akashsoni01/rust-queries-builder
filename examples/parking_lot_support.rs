@@ -12,13 +12,13 @@
 //
 // cargo run --example parking_lot_support --release
 
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 use std::sync::Arc;
 use parking_lot::{RwLock as ParkingLotRwLock, Mutex as ParkingLotMutex};
 use std::time::Instant;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct User {
     id: u32,
     name: String,
@@ -27,7 +27,7 @@ struct User {
     score: f64,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -36,7 +36,7 @@ struct Product {
     category: String,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Order {
     id: u32,
     user_id: u32,
@@ -367,7 +367,7 @@ fn main() {
     println!("--- [1] WHERE: Find active users (direct .lock_query() call) ---");
     let active_users = rwlock_users
         .lock_query()  // Direct method call - no helper needed!
-        .where_(User::status_r(), |s| s == "active")
+        .where_(User::status(), |s| s == "active")
         .all();
     
     println!("  Found: {} active users", active_users.len());
@@ -381,7 +381,7 @@ fn main() {
     println!("--- [3] ORDER BY: Users by score (desc) - direct call ---");
     let ordered = rwlock_users
         .lock_query()  // Direct method call!
-        .order_by_float_desc(User::score_r());
+        .order_by_float_desc(User::score());
     
     println!("  Top users:");
     for user in ordered.iter().take(2) {
@@ -393,17 +393,17 @@ fn main() {
     println!("--- [4] Aggregations: COUNT, AVG, SUM - direct calls ---");
     let count = rwlock_users
         .lock_query()  // Direct!
-        .where_(User::status_r(), |s| s == "active")
+        .where_(User::status(), |s| s == "active")
         .count();
     
     let avg_score = rwlock_users
         .lock_query()  // Direct!
-        .avg(User::score_r())
+        .avg(User::score())
         .unwrap_or(0.0);
     
     let total_stock: u32 = rwlock_products
         .lock_query()  // Direct!
-        .sum(Product::stock_r());
+        .sum(Product::stock());
     
     println!("  Active users: {}", count);
     println!("  Average score: {:.2}", avg_score);
@@ -414,7 +414,7 @@ fn main() {
     println!("--- [5] LAZY: First inactive user - direct .lock_lazy_query() ---");
     let first_inactive = rwlock_users
         .lock_lazy_query()  // Direct method call!
-        .where_(User::status_r(), |s| s == "inactive")
+        .where_(User::status(), |s| s == "inactive")
         .first();
     
     if let Some(user) = first_inactive {
@@ -438,7 +438,7 @@ fn main() {
     println!("--- [1] WHERE: Find active users (Mutex) - direct call ---");
     let active_mutex = mutex_users
         .lock_query()  // Direct method call!
-        .where_(User::status_r(), |s| s == "active")
+        .where_(User::status(), |s| s == "active")
         .all();
     
     println!("  Found: {} active users", active_mutex.len());
@@ -455,7 +455,7 @@ fn main() {
     
     let mutex_avg = mutex_users
         .lock_query()  // Direct!
-        .avg(User::score_r())
+        .avg(User::score())
         .unwrap_or(0.0);
     
     println!("  Total users: {}", mutex_count);
@@ -466,7 +466,7 @@ fn main() {
     println!("--- [3] LAZY with Mutex: EXISTS check - direct call ---");
     let has_high_scorer = mutex_users
         .lock_lazy_query()  // Direct method call!
-        .where_(User::score_r(), |&s| s > 90.0)
+        .where_(User::score(), |&s| s > 90.0)
         .any();
     
     println!("  High scorers exist? {}", has_high_scorer);
@@ -482,7 +482,7 @@ fn main() {
     println!("--- [1] LAZY: Take first 2 active users (RwLock) ---");
     let first_two: Vec<_> = rwlock_users
         .lock_lazy_query()
-        .where_(User::status_r(), |s| s == "active")
+        .where_(User::status(), |s| s == "active")
         .take_lazy(2)
         .collect();
     
@@ -495,8 +495,8 @@ fn main() {
     println!("--- [2] LAZY: SELECT user names (lazy projection) ---");
     let lazy_names: Vec<String> = rwlock_users
         .lock_lazy_query()
-        .where_(User::score_r(), |&s| s > 85.0)
-        .select_lazy(User::name_r())
+        .where_(User::score(), |&s| s > 85.0)
+        .select_lazy(User::name())
         .take(3)
         .collect();
     
@@ -510,8 +510,8 @@ fn main() {
     println!("--- [3] LAZY: Chained WHERE with Mutex ---");
     let filtered: Vec<_> = mutex_users
         .lock_lazy_query()
-        .where_(User::status_r(), |s| s == "active")
-        .where_(User::score_r(), |&s| s >= 90.0)
+        .where_(User::status(), |s| s == "active")
+        .where_(User::score(), |&s| s >= 90.0)
         .take_lazy(2)
         .collect();
     
@@ -527,7 +527,7 @@ fn main() {
     let start = Instant::now();
     let eager_all = rwlock_products
         .lock_query()
-        .where_(Product::stock_r(), |&s| s > 10)
+        .where_(Product::stock(), |&s| s > 10)
         .all();
     let _eager_first = eager_all.first().cloned();
     let eager_time = start.elapsed();
@@ -536,7 +536,7 @@ fn main() {
     let start = Instant::now();
     let _lazy_first = rwlock_products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s > 10)
+        .where_(Product::stock(), |&s| s > 10)
         .first();
     let lazy_time = start.elapsed();
     
@@ -584,8 +584,8 @@ fn main() {
     
     let user_orders = LockJoinQuery::new(user_locks, order_locks)
         .inner_join(
-            User::id_r(),
-            Order::user_id_r(),
+            User::id(),
+            Order::user_id(),
             |user, order| {
                 (user.name.clone(), order.id, order.total, order.status.clone())
             }
@@ -604,8 +604,8 @@ fn main() {
     
     let all_users = LockJoinQuery::new(user_locks, order_locks)
         .left_join(
-            User::id_r(),
-            Order::user_id_r(),
+            User::id(),
+            Order::user_id(),
             |user, order_opt| {
                 match order_opt {
                     Some(order) => format!("{} has order #{} (${:.2})", user.name, order.id, order.total),
@@ -628,7 +628,7 @@ fn main() {
     let mut active_users_view = MaterializedLockView::new(move || {
         rwlock_users_clone
             .lock_query()
-            .where_(User::status_r(), |s| s == "active")
+            .where_(User::status(), |s| s == "active")
             .all()
     });
     
@@ -659,7 +659,7 @@ fn main() {
     let start = Instant::now();
     let eager = large_rwlock_users
         .lock_query()  // Direct!
-        .where_(User::status_r(), |s| s == "inactive")
+        .where_(User::status(), |s| s == "inactive")
         .all();
     let _first = eager.first().cloned();
     let eager_time = start.elapsed();
@@ -668,7 +668,7 @@ fn main() {
     let start = Instant::now();
     let _lazy = large_rwlock_users
         .lock_lazy_query()  // Direct!
-        .where_(User::status_r(), |s| s == "inactive")
+        .where_(User::status(), |s| s == "inactive")
         .first();
     let lazy_time = start.elapsed();
     
@@ -687,7 +687,7 @@ fn main() {
     let start = Instant::now();
     let eager = large_mutex_users
         .lock_query()  // Direct!
-        .where_(User::status_r(), |s| s == "inactive")
+        .where_(User::status(), |s| s == "inactive")
         .all();
     let _first = eager.first().cloned();
     let eager_time = start.elapsed();
@@ -696,7 +696,7 @@ fn main() {
     let start = Instant::now();
     let _lazy = large_mutex_users
         .lock_lazy_query()  // Direct!
-        .where_(User::status_r(), |s| s == "inactive")
+        .where_(User::status(), |s| s == "inactive")
         .first();
     let lazy_time = start.elapsed();
     
@@ -715,7 +715,7 @@ fn main() {
     let start = Instant::now();
     let eager = large_rwlock_products
         .lock_query()  // Direct!
-        .where_(Product::price_r(), |&p| p > 900.0)
+        .where_(Product::price(), |&p| p > 900.0)
         .all();
     let _exists = !eager.is_empty();
     let eager_time = start.elapsed();
@@ -724,7 +724,7 @@ fn main() {
     let start = Instant::now();
     let _exists = large_rwlock_products
         .lock_lazy_query()  // Direct!
-        .where_(Product::price_r(), |&p| p > 900.0)
+        .where_(Product::price(), |&p| p > 900.0)
         .any();
     let lazy_time = start.elapsed();
     
@@ -743,7 +743,7 @@ fn main() {
     let start = Instant::now();
     let eager = large_mutex_products
         .lock_query()  // Direct!
-        .where_(Product::price_r(), |&p| p > 900.0)
+        .where_(Product::price(), |&p| p > 900.0)
         .all();
     let _exists = !eager.is_empty();
     let eager_time = start.elapsed();
@@ -752,7 +752,7 @@ fn main() {
     let start = Instant::now();
     let _exists = large_mutex_products
         .lock_lazy_query()  // Direct!
-        .where_(Product::price_r(), |&p| p > 900.0)
+        .where_(Product::price(), |&p| p > 900.0)
         .any();
     let lazy_time = start.elapsed();
     

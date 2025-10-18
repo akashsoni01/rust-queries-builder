@@ -16,9 +16,9 @@
 //!
 //! ```rust
 //! use rust_queries_builder::{Query, QueryExt};
-//! use key_paths_derive::Keypaths;
+//! use key_paths_derive::Keypath;
 //!
-//! #[derive(Clone, Keypaths)]
+//! #[derive(Clone, Keypath)]
 //! struct Product {
 //!     id: u32,
 //!     name: String,
@@ -49,3 +49,6 @@ pub use rust_queries_core::*;
 
 // Re-export derive macros
 pub use rust_queries_derive::{Queryable as QueryableDerive, QueryBuilder};
+
+// Re-export keypath derive macro for convenience
+pub use key_paths_derive::Keypath;

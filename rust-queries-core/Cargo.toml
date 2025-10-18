@@ -10,8 +10,8 @@ keywords = ["query", "builder", "database", "sql", "keypaths"]
 categories = ["database", "data-structures"]
 
 [dependencies]
-key-paths-core = "1.0.2"
-key-paths-derive = "0.6.0"
+key-paths-core = { version = "1.0.8", features = ["tagged_core"] }
+key-paths-derive = { version = "1.0.2" }
 chrono = { version = "0.4", optional = true }
 parking_lot = { version = "0.12", optional = true }
 tokio = { version = "1.35", features = ["sync"], optional = true }

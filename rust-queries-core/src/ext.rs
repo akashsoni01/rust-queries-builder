@@ -57,7 +57,7 @@ impl<T: 'static, const N: usize> QueryExt<T> for [T; N] {
 /// 
 /// let map: HashMap<String, Product> = ...;
 /// let results: Vec<_> = map.lazy_query()
-///     .where_(Product::price_r(), |&p| p > 100.0)
+///     .where_(Product::price(), |&p| p > 100.0)
 ///     .collect();
 /// ```
 pub trait QueryableExt<T> {
@@ -81,9 +81,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use key_paths_derive::Keypaths;
+    use key_paths_derive::Keypath;
 
-    #[derive(Debug, Clone, PartialEq, Keypaths)]
+    #[derive(Debug, Clone, PartialEq, Keypath)]
     struct Product {
         id: u32,
         name: String,
@@ -110,7 +110,7 @@ mod tests {
 
         let query = products
             .query()
-            .where_(Product::price_r(), |&p| p > 50.0);
+            .where_(Product::price(), |&p| p > 50.0);
         let results = query.all();
 
         assert_eq!(results.len(), 1);
@@ -136,7 +136,7 @@ mod tests {
 
         let results: Vec<_> = products
             .lazy_query()
-            .where_(Product::price_r(), |&p| p > 50.0)
+            .where_(Product::price(), |&p| p > 50.0)
             .collect();
 
         assert_eq!(results.len(), 1);
@@ -162,7 +162,7 @@ mod tests {
 
         let results: Vec<_> = products
             .lazy_query()
-            .where_(Product::price_r(), |&p| p < 100.0)
+            .where_(Product::price(), |&p| p < 100.0)
             .collect();
 
         assert_eq!(results.len(), 1);
@@ -189,7 +189,7 @@ mod tests {
         let slice = &products[..];
         let query = slice
             .query()
-            .where_(Product::category_r(), |cat| cat == "Electronics");
+            .where_(Product::category(), |cat| cat == "Electronics");
         let results = query.count();
 
         assert_eq!(results, 2);
@@ -222,7 +222,7 @@ mod tests {
         // Using QueryableExt for HashMap
         let results: Vec<_> = map
             .lazy_query()
-            .where_(Product::price_r(), |&p| p > 50.0)
+            .where_(Product::price(), |&p| p > 50.0)
             .collect();
 
         assert_eq!(results.len(), 1);
@@ -256,7 +256,7 @@ mod tests {
         // Using QueryableExt for BTreeMap
         let count = map
             .lazy_query()
-            .where_(Product::category_r(), |cat| cat == "Electronics")
+            .where_(Product::category(), |cat| cat == "Electronics")
             .count();
 
         assert_eq!(count, 2);
@@ -283,7 +283,7 @@ mod tests {
         // Using QueryableExt for VecDeque
         let results: Vec<_> = deque
             .lazy_query()
-            .where_(Product::price_r(), |&p| p < 100.0)
+            .where_(Product::price(), |&p| p < 100.0)
             .collect();
 
         assert_eq!(results.len(), 1);
@@ -311,7 +311,7 @@ mod tests {
         // Using QueryableExt for LinkedList
         let first = list
             .lazy_query()
-            .where_(Product::price_r(), |&p| p > 900.0)
+            .where_(Product::price(), |&p| p > 900.0)
             .first();
 
         assert!(first.is_some());
@@ -343,16 +343,16 @@ mod tests {
         });
 
         // Test aggregation operations
-        let total = deque.lazy_query().sum_by(Product::price_r());
+        let total = deque.lazy_query().sum_by(Product::price());
         assert!((total - 1109.97).abs() < 0.01);
 
-        let avg = deque.lazy_query().avg_by(Product::price_r()).unwrap();
+        let avg = deque.lazy_query().avg_by(Product::price()).unwrap();
         assert!((avg - 369.99).abs() < 0.01);
 
-        let min = deque.lazy_query().min_by_float(Product::price_r()).unwrap();
+        let min = deque.lazy_query().min_by_float(Product::price()).unwrap();
         assert!((min - 29.99).abs() < 0.01);
 
-        let max = deque.lazy_query().max_by_float(Product::price_r()).unwrap();
+        let max = deque.lazy_query().max_by_float(Product::price()).unwrap();
         assert!((max - 999.99).abs() < 0.01);
     }
 
@@ -392,8 +392,8 @@ mod tests {
         // Test complex chaining with multiple where clauses
         let results: Vec<_> = map
             .lazy_query()
-            .where_(Product::category_r(), |cat| cat == "Electronics")
-            .where_(Product::price_r(), |&p| p < 500.0)
+            .where_(Product::category(), |cat| cat == "Electronics")
+            .where_(Product::price(), |&p| p < 500.0)
             .skip_lazy(0)
             .take_lazy(10)
             .collect();

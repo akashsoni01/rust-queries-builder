@@ -22,8 +22,8 @@ use std::collections::HashMap;
 /// ```ignore
 /// let user_orders = JoinQuery::new(&users, &orders)
 ///     .inner_join(
-///         User::id_r(),
-///         Order::user_id_r(),
+///         User::id(),
+///         Order::user_id(),
 ///         |user, order| (user.name.clone(), order.total)
 ///     );
 /// ```
@@ -68,8 +68,8 @@ impl<'a, L: 'static, R: 'static> JoinQuery<'a, L, R> {
     /// ```ignore
     /// let results = JoinQuery::new(&users, &orders)
     ///     .inner_join(
-    ///         User::id_r(),
-    ///         Order::user_id_r(),
+    ///         User::id(),
+    ///         Order::user_id(),
     ///         |user, order| UserOrder {
     ///             user_name: user.name.clone(),
     ///             order_total: order.total,
@@ -120,8 +120,8 @@ impl<'a, L: 'static, R: 'static> JoinQuery<'a, L, R> {
     /// ```ignore
     /// let results = JoinQuery::new(&users, &orders)
     ///     .left_join(
-    ///         User::id_r(),
-    ///         Order::user_id_r(),
+    ///         User::id(),
+    ///         Order::user_id(),
     ///         |user, order| match order {
     ///             Some(o) => format!("{} has order {}", user.name, o.id),
     ///             None => format!("{} has no orders", user.name),
@@ -178,8 +178,8 @@ impl<'a, L: 'static, R: 'static> JoinQuery<'a, L, R> {
     /// // Join orders with products, but only high-value orders
     /// let results = JoinQuery::new(&orders, &products)
     ///     .inner_join_where(
-    ///         Order::product_id_r(),
-    ///         Product::id_r(),
+    ///         Order::product_id(),
+    ///         Product::id(),
     ///         |order, _product| order.total > 100.0,
     ///         |order, product| (product.name.clone(), order.total)
     ///     );
@@ -237,8 +237,8 @@ impl<'a, L: 'static, R: 'static> JoinQuery<'a, L, R> {
     /// ```ignore
     /// let results = JoinQuery::new(&users, &orders)
     ///     .right_join(
-    ///         User::id_r(),
-    ///         Order::user_id_r(),
+    ///         User::id(),
+    ///         Order::user_id(),
     ///         |user, order| match user {
     ///             Some(u) => format!("Order {} by {}", order.id, u.name),
     ///             None => format!("Order {} by unknown user", order.id),

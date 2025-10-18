@@ -18,7 +18,7 @@
 //! use rust_queries_core::{Query, datetime::*};
 //! use chrono::{DateTime, Utc};
 //!
-//! #[derive(Keypaths)]
+//! #[derive(Keypath)]
 //! struct Event {
 //!     name: String,
 //!     timestamp: DateTime<Utc>,
@@ -26,7 +26,7 @@
 //!
 //! let events = vec![/* ... */];
 //! let recent = Query::new(&events)
-//!     .where_(Event::timestamp_r(), |ts| {
+//!     .where_(Event::timestamp(), |ts| {
 //!         is_after(ts, &Utc::now() - chrono::Duration::days(7))
 //!     });
 //! ```

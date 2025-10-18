@@ -5,10 +5,10 @@
 //! full access to lazy query operations through the QueryableExt trait.
 
 use rust_queries_core::QueryableExt;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::{HashMap, HashSet, VecDeque, LinkedList, BTreeMap, BTreeSet};
 
-#[derive(Debug, Clone, PartialEq, Keypaths)]
+#[derive(Debug, Clone, PartialEq, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -51,7 +51,7 @@ fn main() {
     // Using QueryExt (optimized for slices)
     let expensive: Vec<_> = products_vec
         .lazy_query()
-        .where_(Product::price_r(), |&p| p > 100.0)
+        .where_(Product::price(), |&p| p > 100.0)
         .collect();
     
     println!("Expensive products (>$100): {} items", expensive.len());
@@ -75,7 +75,7 @@ fn main() {
     // Using QueryableExt for HashMap
     let electronics: Vec<_> = products_map
         .lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .collect();
     
     println!("Electronics from HashMap: {} items", electronics.len());
@@ -114,8 +114,8 @@ fn main() {
     products_deque.push_back(Product::new(3, "Desk", 299.99, "Furniture", 10));
     
     // Aggregate operations with QueryableExt
-    let total_value = products_deque.lazy_query().sum_by(Product::price_r());
-    let avg_price = products_deque.lazy_query().avg_by(Product::price_r()).unwrap();
+    let total_value = products_deque.lazy_query().sum_by(Product::price());
+    let avg_price = products_deque.lazy_query().avg_by(Product::price()).unwrap();
     
     println!("Total value: ${:.2}", total_value);
     println!("Average price: ${:.2}", avg_price);
@@ -134,7 +134,7 @@ fn main() {
     
     let first_furniture = products_list
         .lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Furniture")
+        .where_(Product::category(), |cat| cat == "Furniture")
         .first();
     
     if let Some(product) = first_furniture {
@@ -156,7 +156,7 @@ fn main() {
     
     let furniture_count = products_btree
         .lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Furniture")
+        .where_(Product::category(), |cat| cat == "Furniture")
         .count();
     
     println!("Furniture items in BTreeMap: {} items", furniture_count);
@@ -193,7 +193,7 @@ fn main() {
     
     let electronics_array: Vec<_> = products_array
         .lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .collect();
     
     println!("Electronics from array: {} items", electronics_array.len());
@@ -207,9 +207,9 @@ fn main() {
 
     let complex_results: Vec<_> = products_map
         .lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics" || cat == "Furniture")
-        .where_(Product::price_r(), |&p| p > 100.0)
-        .where_(Product::stock_r(), |&s| s >= 5)
+        .where_(Product::category(), |cat| cat == "Electronics" || cat == "Furniture")
+        .where_(Product::price(), |&p| p > 100.0)
+        .where_(Product::stock(), |&s| s >= 5)
         .skip_lazy(0)
         .take_lazy(3)
         .collect();
@@ -234,16 +234,16 @@ fn main() {
 
     println!("Aggregation operations on VecDeque:");
     
-    let sum = aggregate_deque.lazy_query().sum_by(Product::price_r());
+    let sum = aggregate_deque.lazy_query().sum_by(Product::price());
     println!("  • Sum of prices: ${:.2}", sum);
     
-    let avg = aggregate_deque.lazy_query().avg_by(Product::price_r()).unwrap();
+    let avg = aggregate_deque.lazy_query().avg_by(Product::price()).unwrap();
     println!("  • Average price: ${:.2}", avg);
     
-    let min = aggregate_deque.lazy_query().min_by_float(Product::price_r()).unwrap();
+    let min = aggregate_deque.lazy_query().min_by_float(Product::price()).unwrap();
     println!("  • Minimum price: ${:.2}", min);
     
-    let max = aggregate_deque.lazy_query().max_by_float(Product::price_r()).unwrap();
+    let max = aggregate_deque.lazy_query().max_by_float(Product::price()).unwrap();
     println!("  • Maximum price: ${:.2}", max);
     
     let count = aggregate_deque.lazy_query().count();
@@ -251,7 +251,7 @@ fn main() {
 
     let exists = aggregate_deque
         .lazy_query()
-        .where_(Product::price_r(), |&p| p > 500.0)
+        .where_(Product::price(), |&p| p > 500.0)
         .any();
     println!("  • Has items over $500: {}", exists);
 
@@ -264,7 +264,7 @@ fn main() {
 
     let names: Vec<String> = products_map
         .lazy_query()
-        .select_lazy(Product::name_r())
+        .select_lazy(Product::name())
         .collect();
     
     println!("All product names from HashMap:");
@@ -328,8 +328,8 @@ fn main() {
     println!("   let map: HashMap<K, Product> = ...;");
     println!("   let results: Vec<_> = map");
     println!("       .lazy_query()");
-    println!("       .where_(Product::price_r(), |&p| p > 100.0)");
-    println!("       .where_(Product::stock_r(), |&s| s > 0)");
+    println!("       .where_(Product::price(), |&p| p > 100.0)");
+    println!("       .where_(Product::stock(), |&s| s > 0)");
     println!("       .take_lazy(10)");
     println!("       .collect();");
     println!("   ```\n");

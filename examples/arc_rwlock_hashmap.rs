@@ -4,11 +4,11 @@
 // cargo run --example arc_rwlock_hashmap
 
 use rust_queries_builder::{LazyQuery, locks::{LockQueryExt, LockIterExt}};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -87,9 +87,9 @@ fn main() {
 
     println!("Building filtered query (nothing executes yet)...");
     let electronics_query = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::active_r(), |&active| active)
-        .where_(Product::stock_r(), |&stock| stock > 20);
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::active(), |&active| active)
+        .where_(Product::stock(), |&stock| stock > 20);
 
     println!("  ✅ Query built (deferred execution)\n");
 
@@ -109,8 +109,8 @@ fn main() {
 
     println!("Selecting product names (lazy)...");
     let names: Vec<String> = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Furniture")
-        .select_lazy(Product::name_r())
+        .where_(Product::category(), |cat| cat == "Furniture")
+        .select_lazy(Product::name())
         .collect();
 
     println!("  Furniture names ({}):", names.len());
@@ -147,7 +147,7 @@ fn main() {
 
     println!("Getting page 2 (skip 3, take 3)...");
     let page_2: Vec<_> = LazyQuery::new(&products)
-        .where_(Product::active_r(), |&active| active)
+        .where_(Product::active(), |&active| active)
         .skip_lazy(3)
         .take_lazy(3)
         .collect();
@@ -166,7 +166,7 @@ fn main() {
 
     println!("Finding first expensive item (>$1000)...");
     let expensive = LazyQuery::new(&products)
-        .where_(Product::price_r(), |&price| price > 1000.0)
+        .where_(Product::price(), |&price| price > 1000.0)
         .first();
 
     match expensive {
@@ -184,7 +184,7 @@ fn main() {
 
     println!("Checking if any furniture exists...");
     let has_furniture = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Furniture")
+        .where_(Product::category(), |cat| cat == "Furniture")
         .any();
 
     println!("  Has furniture: {}", has_furniture);
@@ -198,7 +198,7 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     let electronics_count = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .count();
 
     println!("  Electronics count: {}", electronics_count);
@@ -211,8 +211,8 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     let total_value: f64 = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .sum_by(Product::price_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .sum_by(Product::price());
 
     println!("  Total electronics value: ${:.2}", total_value);
 
@@ -224,8 +224,8 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     let avg_price = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Furniture")
-        .avg_by(Product::price_r())
+        .where_(Product::category(), |cat| cat == "Furniture")
+        .avg_by(Product::price())
         .unwrap_or(0.0);
 
     println!("  Average furniture price: ${:.2}", avg_price);
@@ -238,13 +238,13 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     let min_price = LazyQuery::new(&products)
-        .where_(Product::active_r(), |&active| active)
-        .min_by_float(Product::price_r())
+        .where_(Product::active(), |&active| active)
+        .min_by_float(Product::price())
         .unwrap_or(0.0);
 
     let max_price = LazyQuery::new(&products)
-        .where_(Product::active_r(), |&active| active)
-        .max_by_float(Product::price_r())
+        .where_(Product::active(), |&active| active)
+        .max_by_float(Product::price())
         .unwrap_or(0.0);
 
     println!("  Price range for active products:");
@@ -259,7 +259,7 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     let high_rated = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .find(|item| item.rating > 4.7);
 
     if let Some(product) = high_rated {
@@ -276,7 +276,7 @@ fn main() {
 
     println!("  Low stock alerts:");
     LazyQuery::new(&products)
-        .where_(Product::stock_r(), |&stock| stock < 20)
+        .where_(Product::stock(), |&stock| stock < 20)
         .for_each(|product| {
             println!("    ⚠️  {}: Only {} in stock", product.name, product.stock);
         });
@@ -289,7 +289,7 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     let total_inventory_value = LazyQuery::new(&products)
-        .where_(Product::active_r(), |&active| active)
+        .where_(Product::active(), |&active| active)
         .fold(0.0, |acc, product| {
             acc + (product.price * product.stock as f64)
         });
@@ -317,7 +317,7 @@ fn main() {
 
     println!("  High-value products (>$300):");
     for product in LazyQuery::new(&products)
-        .where_(Product::price_r(), |&p| p > 300.0)
+        .where_(Product::price(), |&p| p > 300.0)
         .take_lazy(5)
     {
         println!("    • {}: ${:.2}", product.name, product.price);
@@ -331,7 +331,7 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     let price_tags: Vec<String> = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .map_items(|p| format!("{}: ${:.2}", p.name, p.price))
         .take(5)
         .collect();
@@ -357,10 +357,10 @@ fn main() {
     println!();
 
     let results: Vec<String> = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&p| p >= 50.0 && p <= 500.0)
-        .where_(Product::rating_r(), |&r| r > 4.5)
-        .select_lazy(Product::name_r())
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&p| p >= 50.0 && p <= 500.0)
+        .where_(Product::rating(), |&r| r > 4.5)
+        .select_lazy(Product::name())
         .take(3)
         .collect();
 
@@ -419,10 +419,10 @@ fn main() {
             .collect();
 
         let count = LazyQuery::new(&cat_products).count();
-        let total = LazyQuery::new(&cat_products).sum_by(Product::price_r());
-        let avg = LazyQuery::new(&cat_products).avg_by(Product::price_r()).unwrap_or(0.0);
-        let min = LazyQuery::new(&cat_products).min_by_float(Product::price_r()).unwrap_or(0.0);
-        let max = LazyQuery::new(&cat_products).max_by_float(Product::price_r()).unwrap_or(0.0);
+        let total = LazyQuery::new(&cat_products).sum_by(Product::price());
+        let avg = LazyQuery::new(&cat_products).avg_by(Product::price()).unwrap_or(0.0);
+        let min = LazyQuery::new(&cat_products).min_by_float(Product::price()).unwrap_or(0.0);
+        let max = LazyQuery::new(&cat_products).max_by_float(Product::price()).unwrap_or(0.0);
 
         println!("    Count: {}", count);
         println!("    Total: ${:.2}", total);
@@ -473,7 +473,7 @@ fn main() {
 
     println!("  Lazy approach (actual):");
     let _first_rated = LazyQuery::new(&products)
-        .where_(Product::rating_r(), |&r| r > 4.7)
+        .where_(Product::rating(), |&r| r > 4.7)
         .first();
     println!("    - Starts checking products");
     println!("    - Stops at first match");

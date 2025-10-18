@@ -3,7 +3,7 @@
 // cargo run --example macro_helpers
 
 use rust_queries_builder::LazyQuery;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 
 // Import all the helper macros
 use rust_queries_builder::{
@@ -12,7 +12,7 @@ use rust_queries_builder::{
     sum_where, avg_where, select_all, select_where,
 };
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -70,7 +70,7 @@ fn main() {
     println!("❌ Without macro (verbose):");
     println!("```rust");
     println!("let electronics: Vec<_> = LazyQuery::new(&products)");
-    println!("    .where_(Product::category_r(), |cat| cat == \"Electronics\")");
+    println!("    .where_(Product::category(), |cat| cat == \"Electronics\")");
     println!("    .collect();");
     println!("```\n");
 
@@ -78,14 +78,14 @@ fn main() {
     println!("```rust");
     println!("let electronics = filter_collect!(");
     println!("    &products,");
-    println!("    Product::category_r(),");
+    println!("    Product::category(),");
     println!("    |cat| cat == \"Electronics\"");
     println!(");");
     println!("```\n");
 
     let electronics = filter_collect!(
         &products,
-        Product::category_r(),
+        Product::category(),
         |cat| cat == "Electronics"
     );
     println!("Result: {} electronics\n", electronics.len());
@@ -100,16 +100,16 @@ fn main() {
     println!("❌ Without macro (verbose):");
     println!("```rust");
     println!("let count = LazyQuery::new(&products)");
-    println!("    .where_(Product::stock_r(), |&s| s > 0)");
+    println!("    .where_(Product::stock(), |&s| s > 0)");
     println!("    .count();");
     println!("```\n");
 
     println!("✅ With macro (concise):");
     println!("```rust");
-    println!("let count = count_where!(&products, Product::stock_r(), |&s| s > 0);");
+    println!("let count = count_where!(&products, Product::stock(), |&s| s > 0);");
     println!("```\n");
 
-    let count = count_where!(&products, Product::stock_r(), |&s| s > 0);
+    let count = count_where!(&products, Product::stock(), |&s| s > 0);
     println!("Result: {} products in stock\n", count);
 
     // ============================================================================
@@ -122,16 +122,16 @@ fn main() {
     println!("❌ Without macro (verbose):");
     println!("```rust");
     println!("let found = LazyQuery::new(&products)");
-    println!("    .where_(Product::price_r(), |&p| p > 500.0)");
+    println!("    .where_(Product::price(), |&p| p > 500.0)");
     println!("    .first();");
     println!("```\n");
 
     println!("✅ With macro (concise):");
     println!("```rust");
-    println!("let found = find_first!(&products, Product::price_r(), |&p| p > 500.0);");
+    println!("let found = find_first!(&products, Product::price(), |&p| p > 500.0);");
     println!("```\n");
 
-    let found = find_first!(&products, Product::price_r(), |&p| p > 500.0);
+    let found = find_first!(&products, Product::price(), |&p| p > 500.0);
     if let Some(p) = found {
         println!("Result: Found {} at ${:.2}\n", p.name, p.price);
     }
@@ -146,7 +146,7 @@ fn main() {
     println!("❌ Without macro (verbose):");
     println!("```rust");
     println!("let has_furniture = LazyQuery::new(&products)");
-    println!("    .where_(Product::category_r(), |cat| cat == \"Furniture\")");
+    println!("    .where_(Product::category(), |cat| cat == \"Furniture\")");
     println!("    .any();");
     println!("```\n");
 
@@ -154,14 +154,14 @@ fn main() {
     println!("```rust");
     println!("let has_furniture = exists_where!(");
     println!("    &products,");
-    println!("    Product::category_r(),");
+    println!("    Product::category(),");
     println!("    |cat| cat == \"Furniture\"");
     println!(");");
     println!("```\n");
 
     let has_furniture = exists_where!(
         &products,
-        Product::category_r(),
+        Product::category(),
         |cat| cat == "Furniture"
     );
     println!("Result: Has furniture = {}\n", has_furniture);
@@ -199,16 +199,16 @@ fn main() {
     println!("❌ Without macro (verbose):");
     println!("```rust");
     println!("let total: f64 = LazyQuery::new(&products)");
-    println!("    .where_(Product::active_r(), |&a| a)");
-    println!("    .sum_by(Product::price_r());");
+    println!("    .where_(Product::active(), |&a| a)");
+    println!("    .sum_by(Product::price());");
     println!("```\n");
 
     println!("✅ With macro (concise):");
     println!("```rust");
-    println!("let total = sum_where!(&products, Product::price_r(), Product::active_r(), |&a| a);");
+    println!("let total = sum_where!(&products, Product::price(), Product::active(), |&a| a);");
     println!("```\n");
 
-    let total = sum_where!(&products, Product::price_r(), Product::active_r(), |&a| a);
+    let total = sum_where!(&products, Product::price(), Product::active(), |&a| a);
     println!("Result: Total active products value = ${:.2}\n", total);
 
     // ============================================================================
@@ -221,8 +221,8 @@ fn main() {
     println!("❌ Without macro (verbose):");
     println!("```rust");
     println!("let avg = LazyQuery::new(&products)");
-    println!("    .where_(Product::category_r(), |cat| cat == \"Electronics\")");
-    println!("    .avg_by(Product::price_r())");
+    println!("    .where_(Product::category(), |cat| cat == \"Electronics\")");
+    println!("    .avg_by(Product::price())");
     println!("    .unwrap_or(0.0);");
     println!("```\n");
 
@@ -230,16 +230,16 @@ fn main() {
     println!("```rust");
     println!("let avg = avg_where!(");
     println!("    &products,");
-    println!("    Product::price_r(),");
-    println!("    Product::category_r(),");
+    println!("    Product::price(),");
+    println!("    Product::category(),");
     println!("    |cat| cat == \"Electronics\"");
     println!(").unwrap_or(0.0);");
     println!("```\n");
 
     let avg = avg_where!(
         &products,
-        Product::price_r(),
-        Product::category_r(),
+        Product::price(),
+        Product::category(),
         |cat| cat == "Electronics"
     ).unwrap_or(0.0);
     println!("Result: Average electronics price = ${:.2}\n", avg);
@@ -254,16 +254,16 @@ fn main() {
     println!("❌ Without macro (verbose):");
     println!("```rust");
     println!("let names: Vec<String> = LazyQuery::new(&products)");
-    println!("    .select_lazy(Product::name_r())");
+    println!("    .select_lazy(Product::name())");
     println!("    .collect();");
     println!("```\n");
 
     println!("✅ With macro (concise):");
     println!("```rust");
-    println!("let names = select_all!(&products, Product::name_r());");
+    println!("let names = select_all!(&products, Product::name());");
     println!("```\n");
 
-    let names: Vec<String> = select_all!(&products, Product::name_r());
+    let names: Vec<String> = select_all!(&products, Product::name());
     println!("Result: {} product names\n", names.len());
 
     // ============================================================================
@@ -276,8 +276,8 @@ fn main() {
     println!("❌ Without macro (verbose):");
     println!("```rust");
     println!("let furniture_names: Vec<String> = LazyQuery::new(&products)");
-    println!("    .where_(Product::category_r(), |cat| cat == \"Furniture\")");
-    println!("    .select_lazy(Product::name_r())");
+    println!("    .where_(Product::category(), |cat| cat == \"Furniture\")");
+    println!("    .select_lazy(Product::name())");
     println!("    .collect();");
     println!("```\n");
 
@@ -285,16 +285,16 @@ fn main() {
     println!("```rust");
     println!("let furniture_names = select_where!(");
     println!("    &products,");
-    println!("    Product::name_r(),");
-    println!("    Product::category_r(),");
+    println!("    Product::name(),");
+    println!("    Product::category(),");
     println!("    |cat| cat == \"Furniture\"");
     println!(");");
     println!("```\n");
 
     let furniture_names: Vec<String> = select_where!(
         &products,
-        Product::name_r(),
-        Product::category_r(),
+        Product::name(),
+        Product::category(),
         |cat| cat == "Furniture"
     );
     println!("Result: {} furniture items\n", furniture_names.len());
@@ -312,37 +312,37 @@ fn main() {
     println!("```rust");
     println!("let results: Vec<_> = LazyQuery::new(&products)");
     println!("    .where_(");
-    println!("        Product::category_r(),");
+    println!("        Product::category(),");
     println!("        |cat| cat == \"Electronics\"");
     println!("    )");
-    println!("    .where_(Product::price_r(), |&p| p < 500.0)");
-    println!("    .where_(Product::stock_r(), |&s| s > 0)");
+    println!("    .where_(Product::price(), |&p| p < 500.0)");
+    println!("    .where_(Product::stock(), |&s| s > 0)");
     println!("    .take_lazy(5)");
     println!("    .collect();");
     println!("```\n");
 
     // Actual verbose version
     let verbose_results: Vec<_> = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&p| p < 500.0)
-        .where_(Product::stock_r(), |&s| s > 0)
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&p| p < 500.0)
+        .where_(Product::stock(), |&s| s > 0)
         .take_lazy(5)
         .collect();
 
     println!("✅ WITH MACROS (Shorter, but still need multiple filters):");
     println!("```rust");
     println!("let results = lazy_query!(&products)");
-    println!("    .where_(Product::category_r(), |cat| cat == \"Electronics\")");
-    println!("    .where_(Product::price_r(), |&p| p < 500.0)");
-    println!("    .where_(Product::stock_r(), |&s| s > 0)");
+    println!("    .where_(Product::category(), |cat| cat == \"Electronics\")");
+    println!("    .where_(Product::price(), |&p| p < 500.0)");
+    println!("    .where_(Product::stock(), |&s| s > 0)");
     println!("    .take_lazy(5)");
     println!("    .collect();");
     println!("```\n");
 
     let macro_results = lazy_query!(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&p| p < 500.0)
-        .where_(Product::stock_r(), |&s| s > 0)
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&p| p < 500.0)
+        .where_(Product::stock(), |&s| s > 0)
         .take_lazy(5)
         .collect();
 
@@ -403,19 +403,19 @@ fn main() {
     println!("   → LazyQuery::new(&data).collect()\n");
 
     println!("4. filter_collect!(&data, field, pred)");
-    let _r4 = filter_collect!(&products, Product::active_r(), |&a| a);
+    let _r4 = filter_collect!(&products, Product::active(), |&a| a);
     println!("   → LazyQuery::new(&data).where_(field, pred).collect()\n");
 
     println!("5. count_where!(&data, field, pred)");
-    let _r5 = count_where!(&products, Product::active_r(), |&a| a);
+    let _r5 = count_where!(&products, Product::active(), |&a| a);
     println!("   → LazyQuery::new(&data).where_(field, pred).count()\n");
 
     println!("6. find_first!(&data, field, pred)");
-    let _r6 = find_first!(&products, Product::id_r(), |&id| id == 1);
+    let _r6 = find_first!(&products, Product::id(), |&id| id == 1);
     println!("   → LazyQuery::new(&data).where_(field, pred).first()\n");
 
     println!("7. exists_where!(&data, field, pred)");
-    let _r7 = exists_where!(&products, Product::active_r(), |&a| a);
+    let _r7 = exists_where!(&products, Product::active(), |&a| a);
     println!("   → LazyQuery::new(&data).where_(field, pred).any()\n");
 
     println!("8. paginate!(&data, page: p, size: s)");
@@ -423,19 +423,19 @@ fn main() {
     println!("   → LazyQuery::new(&data).skip_lazy(p*s).take_lazy(s).collect()\n");
 
     println!("9. sum_where!(&data, sum_field, filter_field, pred)");
-    let _r9 = sum_where!(&products, Product::price_r(), Product::active_r(), |&a| a);
+    let _r9 = sum_where!(&products, Product::price(), Product::active(), |&a| a);
     println!("   → LazyQuery::new(&data).where_(filter_field, pred).sum_by(sum_field)\n");
 
     println!("10. avg_where!(&data, avg_field, filter_field, pred)");
-    let _r10 = avg_where!(&products, Product::price_r(), Product::active_r(), |&a| a);
+    let _r10 = avg_where!(&products, Product::price(), Product::active(), |&a| a);
     println!("    → LazyQuery::new(&data).where_(filter_field, pred).avg_by(avg_field)\n");
 
     println!("11. select_all!(&data, field)");
-    let _r11: Vec<String> = select_all!(&products, Product::name_r());
+    let _r11: Vec<String> = select_all!(&products, Product::name());
     println!("    → LazyQuery::new(&data).select_lazy(field).collect()\n");
 
     println!("12. select_where!(&data, select_field, filter_field, pred)");
-    let _r12: Vec<String> = select_where!(&products, Product::name_r(), Product::active_r(), |&a| a);
+    let _r12: Vec<String> = select_where!(&products, Product::name(), Product::active(), |&a| a);
     println!("    → LazyQuery::new(&data).where_(filter, pred).select_lazy(field).collect()\n");
 
     // ============================================================================

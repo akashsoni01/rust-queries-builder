@@ -104,10 +104,10 @@ See the [Individual Crates Guide](INDIVIDUAL_CRATES_GUIDE.md) for complete detai
 
 ```rust
 use rust_queries_builder::QueryExt;  // Extension trait
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 
 // Note: Clone not required for most operations!
-#[derive(Keypaths)]
+#[derive(Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -119,13 +119,13 @@ struct Product {
 let products = vec![/* ... */];
 
 // Call .query() directly on Vec!
-let query = products.query().where_(Product::price_r(), |&p| p > 100.0);
+let query = products.query().where_(Product::price(), |&p| p > 100.0);
 let expensive = query.all();
 
 // Or use lazy queries for better performance
 let cheap: Vec<_> = products
     .lazy_query()
-    .where_(Product::price_r(), |&p| p < 50.0)
+    .where_(Product::price(), |&p| p < 50.0)
     .collect();
 ```
 
@@ -133,9 +133,9 @@ let cheap: Vec<_> = products
 
 ```rust
 use rust_queries_builder::Query;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 
-#[derive(Keypaths)]
+#[derive(Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -153,8 +153,8 @@ fn main() {
 
     // Filter products by category and price
     let query = Query::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&price| price < 100.0);
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&price| price < 100.0);
     let affordable_electronics = query.all();
 
     println!("Found {} affordable electronics", affordable_electronics.len());
@@ -165,15 +165,15 @@ fn main() {
 
 ```rust
 use rust_queries_builder::LazyQuery;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 
 fn main() {
     let products = vec![/* ... */];
 
     // Build query (nothing executes yet!)
     let query = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&price| price < 100.0)
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&price| price < 100.0)
         .take_lazy(10);  // Will stop after finding 10 items!
 
     // Execute query (lazy evaluation with early termination)
@@ -192,14 +192,14 @@ Filter collections using type-safe key-paths:
 
 ```rust
 let query = Query::new(&products)
-    .where_(Product::category_r(), |cat| cat == "Electronics");
+    .where_(Product::category(), |cat| cat == "Electronics");
 let electronics = query.all();
 
 // Multiple conditions
 let query2 = Query::new(&products)
-    .where_(Product::category_r(), |cat| cat == "Electronics")
-    .where_(Product::price_r(), |&price| price > 500.0)
-    .where_(Product::stock_r(), |&stock| stock > 0);
+    .where_(Product::category(), |cat| cat == "Electronics")
+    .where_(Product::price(), |&price| price > 500.0)
+    .where_(Product::stock(), |&stock| stock > 0);
 let premium_electronics = query2.all();
 ```
 
@@ -210,12 +210,12 @@ Project specific fields from your data:
 ```rust
 // Get all product names
 let names: Vec<String> = Query::new(&products)
-    .select(Product::name_r());
+    .select(Product::name());
 
 // Get prices of electronics
 let prices: Vec<f64> = Query::new(&products)
-    .where_(Product::category_r(), |cat| cat == "Electronics")
-    .select(Product::price_r());
+    .where_(Product::category(), |cat| cat == "Electronics")
+    .select(Product::price());
 ```
 
 ### Ordering Results
@@ -225,16 +225,16 @@ Sort results by any field:
 ```rust
 // Sort by price (ascending)
 let by_price = Query::new(&products)
-    .order_by_float(Product::price_r());
+    .order_by_float(Product::price());
 
 // Sort by name (descending)
 let by_name_desc = Query::new(&products)
-    .order_by_desc(Product::name_r());
+    .order_by_desc(Product::name());
 
 // Sort with filtering
 let sorted_electronics = Query::new(&products)
-    .where_(Product::category_r(), |cat| cat == "Electronics")
-    .order_by_float(Product::price_r());
+    .where_(Product::category(), |cat| cat == "Electronics")
+    .order_by_float(Product::price());
 ```
 
 ### Aggregations
@@ -243,20 +243,20 @@ Compute statistics over your data:
 
 ```rust
 let electronics = Query::new(&products)
-    .where_(Product::category_r(), |cat| cat == "Electronics");
+    .where_(Product::category(), |cat| cat == "Electronics");
 
 // Count
 let count = electronics.count();
 
 // Sum
-let total_value: f64 = electronics.sum(Product::price_r());
+let total_value: f64 = electronics.sum(Product::price());
 
 // Average
-let avg_price = electronics.avg(Product::price_r()).unwrap_or(0.0);
+let avg_price = electronics.avg(Product::price()).unwrap_or(0.0);
 
 // Min and Max
-let cheapest = electronics.min_float(Product::price_r());
-let most_expensive = electronics.max_float(Product::price_r());
+let cheapest = electronics.min_float(Product::price());
+let most_expensive = electronics.max_float(Product::price());
 ```
 
 ### Grouping with `group_by`
@@ -268,12 +268,12 @@ use std::collections::HashMap;
 
 // Group products by category
 let by_category: HashMap<String, Vec<Product>> = Query::new(&products)
-    .group_by(Product::category_r());
+    .group_by(Product::category());
 
 // Calculate statistics per group
 for (category, items) in &by_category {
     let cat_query = Query::new(items);
-    let avg = cat_query.avg(Product::price_r()).unwrap_or(0.0);
+    let avg = cat_query.avg(Product::price()).unwrap_or(0.0);
     println!("{}: {} products, avg price ${:.2}", category, items.len(), avg);
 }
 ```
@@ -293,7 +293,7 @@ let second_page = query.skip(10).limit(10);
 
 // Get first matching item
 let query = Query::new(&products)
-    .where_(Product::price_r(), |&price| price > 1000.0);
+    .where_(Product::price(), |&price| price > 1000.0);
 let first = query.first();
 ```
 
@@ -331,16 +331,16 @@ let orders = vec![
 // Inner join: users with their orders
 let user_orders = JoinQuery::new(&users, &orders)
     .inner_join(
-        User::id_r(),
-        Order::user_id_r(),
+        User::id(),
+        Order::user_id(),
         |user, order| (user.name.clone(), order.total)
     );
 
 // Left join: all users, with or without orders
 let all_users_orders = JoinQuery::new(&users, &orders)
     .left_join(
-        User::id_r(),
-        Order::user_id_r(),
+        User::id(),
+        Order::user_id(),
         |user, order| match order {
             Some(o) => format!("{} has order totaling ${:.2}", user.name, o.total),
             None => format!("{} has no orders", user.name),
@@ -350,8 +350,8 @@ let all_users_orders = JoinQuery::new(&users, &orders)
 // Join with filter: only high-value orders
 let high_value = JoinQuery::new(&users, &orders)
     .inner_join_where(
-        User::id_r(),
-        Order::user_id_r(),
+        User::id(),
+        Order::user_id(),
         |_user, order| order.total > 100.0,
         |user, order| (user.name.clone(), order.total)
     );
@@ -388,26 +388,26 @@ let products: HashMap<String, Arc<RwLock<Product>>> = /* ... */;
 // Full SQL-like syntax on locked data!
 let expensive = products
     .lock_query()
-    .where_(Product::category_r(), |cat| cat == "Electronics")
-    .where_(Product::price_r(), |&p| p > 500.0)
-    .order_by_float_desc(Product::rating_r())
+    .where_(Product::category(), |cat| cat == "Electronics")
+    .where_(Product::price(), |&p| p > 500.0)
+    .order_by_float_desc(Product::rating())
     .limit(10);
 
 // GROUP BY with aggregations
 let by_category = products
     .lock_query()
-    .group_by(Product::category_r());
+    .group_by(Product::category());
 
 // Aggregations
 let stats = products.lock_query();
-let total = stats.sum(Product::price_r());
-let avg = stats.avg(Product::price_r());
+let total = stats.sum(Product::price());
+let avg = stats.avg(Product::price());
 let count = stats.count();
 
 // Lazy with early termination
 let first_match: Vec<_> = products
     .lock_lazy_query()
-    .where_(Product::stock_r(), |&s| s > 20)
+    .where_(Product::stock(), |&s| s > 20)
     .take_lazy(5)
     .collect();
 ```
@@ -443,7 +443,7 @@ let products: HashMap<String, Arc<RwLock<Product>>> = /* ... */;
 
 let expensive = products
     .lock_query()
-    .where_(Product::price_r(), |&p| p > 100.0)
+    .where_(Product::price(), |&p| p > 100.0)
     .all();
 ```
 
@@ -470,7 +470,7 @@ products.insert("p1".to_string(), TokioRwLockWrapper::new(Product {
 async fn query_products(products: &HashMap<String, TokioRwLockWrapper<Product>>) {
     let expensive = products
         .lock_query()  // Direct method call!
-        .where_(Product::price_r(), |&p| p > 500.0)
+        .where_(Product::price(), |&p| p > 500.0)
         .all();
     
     println!("Found {} expensive products", expensive.len());
@@ -536,7 +536,7 @@ let products: HashMap<String, ParkingLotRwLockWrapper<Product>> = /* ... */;
 
 let expensive = products
     .lock_query()  // Direct method call!
-    .where_(Product::price_r(), |&p| p > 500.0)
+    .where_(Product::price(), |&p| p > 500.0)
     .all();
 ```
 
@@ -558,7 +558,7 @@ use rust_queries_builder::Query;
 use chrono::{Utc, Duration};
 use key_paths_derive::Keypaths;
 
-#[derive(Keypaths)]
+#[derive(Keypath)]
 struct Event {
     id: u32,
     title: String,
@@ -572,25 +572,25 @@ let now = Utc::now();
 // Events scheduled in the next 7 days
 let upcoming = Query::new(&events)
     .where_between(
-        Event::scheduled_at_r(), 
+        Event::scheduled_at(), 
         now, 
         now + Duration::days(7)
     );
 
 // Weekend events
 let weekend = Query::new(&events)
-    .where_weekend(Event::scheduled_at_r());
+    .where_weekend(Event::scheduled_at());
 
 // Work events during business hours on weekdays
 let work_hours = Query::new(&events)
-    .where_(Event::category_r(), |c| c == "Work")
-    .where_weekday(Event::scheduled_at_r())
-    .where_business_hours(Event::scheduled_at_r());
+    .where_(Event::category(), |c| c == "Work")
+    .where_weekday(Event::scheduled_at())
+    .where_business_hours(Event::scheduled_at());
 
 // Events in December 2024
 let december = Query::new(&events)
-    .where_year(Event::scheduled_at_r(), 2024)
-    .where_month(Event::scheduled_at_r(), 12);
+    .where_year(Event::scheduled_at(), 2024)
+    .where_month(Event::scheduled_at(), 12);
 ```
 
 ### Available DateTime Operations
@@ -610,10 +610,10 @@ See the [DateTime Guide](DATETIME_GUIDE.md) for complete documentation and examp
 ```rust
 // Find top 5 expensive electronics in stock, ordered by rating
 let top_electronics = Query::new(&products)
-    .where_(Product::category_r(), |cat| cat == "Electronics")
-    .where_(Product::stock_r(), |&stock| stock > 0)
-    .where_(Product::price_r(), |&price| price > 100.0)
-    .order_by_float_desc(Product::rating_r());
+    .where_(Product::category(), |cat| cat == "Electronics")
+    .where_(Product::stock(), |&stock| stock > 0)
+    .where_(Product::price(), |&price| price > 100.0)
+    .order_by_float_desc(Product::rating());
 
 for product in top_electronics.iter().take(5) {
     println!("{} - ${:.2} - Rating: {:.1}", 
@@ -634,8 +634,8 @@ struct Product {
 // First join: Orders with Users
 let orders_users = JoinQuery::new(&orders, &users)
     .inner_join(
-        Order::user_id_r(),
-        User::id_r(),
+        Order::user_id(),
+        User::id(),
         |order, user| (order.clone(), user.clone())
     );
 
@@ -656,8 +656,8 @@ for (order, user) in orders_users {
 // Join orders with products, then aggregate by category
 let order_products = JoinQuery::new(&orders, &products)
     .inner_join(
-        Order::product_id_r(),
-        Product::id_r(),
+        Order::product_id(),
+        Product::id(),
         |order, product| (product.category.clone(), order.total)
     );
 
@@ -803,17 +803,17 @@ The `sql_comparison` example demonstrates how traditional SQL queries (like thos
 ```rust
 // SQL: SELECT * FROM employees WHERE department = 'Engineering';
 let engineering = Query::new(&employees)
-    .where_(Employee::department_r(), |dept| dept == "Engineering")
+    .where_(Employee::department(), |dept| dept == "Engineering")
     .all();
 
 // SQL: SELECT AVG(salary) FROM employees WHERE age < 30;
 let avg_salary = Query::new(&employees)
-    .where_(Employee::age_r(), |&age| age < 30)
-    .avg(Employee::salary_r());
+    .where_(Employee::age(), |&age| age < 30)
+    .avg(Employee::salary());
 
 // SQL: SELECT * FROM employees ORDER BY salary DESC LIMIT 5;
 let top_5 = Query::new(&employees)
-    .order_by_float_desc(Employee::salary_r())
+    .order_by_float_desc(Employee::salary())
     .into_iter()
     .take(5)
     .collect::<Vec<_>>();
@@ -849,10 +849,10 @@ The query builder uses:
 
 ## Key-Paths
 
-This library leverages the `key-paths` crate to provide type-safe field access. The `Keypaths` derive macro automatically generates accessor methods for your structs:
+This library leverages the `key-paths` crate to provide type-safe field access. The `Keypath` derive macro automatically generates accessor methods for your structs:
 
 ```rust
-#[derive(Keypaths)]
+#[derive(Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -860,9 +860,9 @@ struct Product {
 }
 
 // Generated methods:
-// - Product::id_r() -> KeyPaths<Product, u32>
-// - Product::name_r() -> KeyPaths<Product, String>
-// - Product::price_r() -> KeyPaths<Product, f64>
+// - Product::id() -> KeyPaths<Product, u32>
+// - Product::name() -> KeyPaths<Product, String>
+// - Product::price() -> KeyPaths<Product, f64>
 ```
 
 ## Lock Type Comparison

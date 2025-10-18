@@ -10,10 +10,10 @@
 #[cfg(feature = "datetime")]
 use chrono::{DateTime, Utc, Duration, TimeZone};
 use rust_queries_builder::{LazyQuery, datetime::chrono_ops};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::time::Instant;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Event {
     id: u32,
     title: String,
@@ -78,7 +78,7 @@ fn main() {
     let start = Instant::now();
     let ref_date = reference_date.clone();
     let after_events: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_after(dt, &ref_date)
         })
         .take_lazy(10)  // Early termination!
@@ -96,7 +96,7 @@ fn main() {
     let start = Instant::now();
     let ref_date = reference_date.clone();
     let before_events: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_before(dt, &ref_date)
         })
         .take_lazy(5)
@@ -112,7 +112,7 @@ fn main() {
     let start_date = Utc.with_ymd_and_hms(2024, 10, 1, 0, 0, 0).unwrap();
     let end_date = Utc.with_ymd_and_hms(2024, 10, 31, 23, 59, 59).unwrap();
     let between_events: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_between(dt, &start_date, &end_date)
         })
         .take_lazy(20)
@@ -127,7 +127,7 @@ fn main() {
     let start = Instant::now();
     let now_clone = now.clone();
     let has_past = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_past(dt, &now_clone)
         })
         .any();
@@ -147,7 +147,7 @@ fn main() {
     println!("--- is_weekend: Find first 15 weekend events ---");
     let start = Instant::now();
     let weekend_events: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), |dt| {
+        .where_(Event::scheduled_at(), |dt| {
             chrono_ops::is_weekend(dt)
         })
         .take_lazy(15)
@@ -167,7 +167,7 @@ fn main() {
     println!("--- is_weekday: Count all weekday events ---");
     let start = Instant::now();
     let weekday_count = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), |dt| {
+        .where_(Event::scheduled_at(), |dt| {
             chrono_ops::is_weekday(dt)
         })
         .count();
@@ -180,7 +180,7 @@ fn main() {
     println!("--- is_business_hours: Find first 10 business hour events ---");
     let start = Instant::now();
     let business_events: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), |dt| {
+        .where_(Event::scheduled_at(), |dt| {
             chrono_ops::is_business_hours(dt)
         })
         .take_lazy(10)
@@ -223,7 +223,7 @@ fn main() {
     println!("--- extract_year/month: Find first 10 events in October 2024 ---");
     let start = Instant::now();
     let october_events: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), |dt| {
+        .where_(Event::scheduled_at(), |dt| {
             chrono_ops::extract_year(dt) == 2024 && chrono_ops::extract_month(dt) == 10
         })
         .take_lazy(10)
@@ -240,7 +240,7 @@ fn main() {
     println!("--- extract_hour: Find events at specific hour (14:00-14:59) ---");
     let start = Instant::now();
     let hour_14_events: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), |dt| {
+        .where_(Event::scheduled_at(), |dt| {
             chrono_ops::extract_hour(dt) == 14
         })
         .take_lazy(10)
@@ -261,7 +261,7 @@ fn main() {
     println!("--- days_between: Find events planned >30 days in advance (first 10) ---");
     let start = Instant::now();
     let well_planned: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), |scheduled| {
+        .where_(Event::scheduled_at(), |scheduled| {
             events.iter().any(|e| {
                 e.scheduled_at == *scheduled && 
                 chrono_ops::days_between(scheduled, &e.created_at) > 30
@@ -381,8 +381,8 @@ fn main() {
     println!("--- Complex: High-priority (>=4) weekend events (first 10) ---");
     let start = Instant::now();
     let complex_query: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::priority_r(), |&p| p >= 4)
-        .where_(Event::scheduled_at_r(), |dt| {
+        .where_(Event::priority(), |&p| p >= 4)
+        .where_(Event::scheduled_at(), |dt| {
             chrono_ops::is_weekend(dt)
         })
         .take_lazy(10)
@@ -406,7 +406,7 @@ fn main() {
     println!("--- Complex: October weekday business hours events (first 15) ---");
     let start = Instant::now();
     let oct_weekday_business: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), |dt| {
+        .where_(Event::scheduled_at(), |dt| {
             chrono_ops::extract_month(dt) == 10 &&
             chrono_ops::is_weekday(dt) &&
             chrono_ops::is_business_hours(dt)
@@ -434,13 +434,13 @@ fn main() {
     
     let start = Instant::now();
     let _first = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), |dt| chrono_ops::is_weekend(dt))
+        .where_(Event::scheduled_at(), |dt| chrono_ops::is_weekend(dt))
         .first();
     let first_duration = start.elapsed();
     
     let start = Instant::now();
     let _count = LazyQuery::new(&events)
-        .where_(Event::scheduled_at_r(), |dt| chrono_ops::is_weekend(dt))
+        .where_(Event::scheduled_at(), |dt| chrono_ops::is_weekend(dt))
         .count();
     let count_duration = start.elapsed();
     

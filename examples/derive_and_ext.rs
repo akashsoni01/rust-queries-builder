@@ -1,7 +1,7 @@
 use rust_queries_builder::{QueryExt, QueryBuilder};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 
-#[derive(Debug, Clone, Keypaths, QueryBuilder)]
+#[derive(Debug, Clone, Keypath, QueryBuilder)]
 struct Product {
     id: u32,
     name: String,
@@ -57,7 +57,7 @@ fn main() {
     
     let query = products
         .query()
-        .where_(Product::price_r(), |&p| p > 100.0);
+        .where_(Product::price(), |&p| p > 100.0);
     let expensive = query.all();
     
     println!("   Found {} expensive products:", expensive.len());
@@ -71,7 +71,7 @@ fn main() {
     
     let low_stock: Vec<_> = products
         .lazy_query()
-        .where_(Product::stock_r(), |&s| s < 10)
+        .where_(Product::stock(), |&s| s < 10)
         .collect();
     
     println!("   Found {} low stock products:", low_stock.len());
@@ -85,9 +85,9 @@ fn main() {
     
     let names: Vec<String> = products
         .lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .take_lazy(2)
-        .select_lazy(Product::name_r())
+        .select_lazy(Product::name())
         .collect();
     
     println!("   First 2 electronics:");
@@ -100,7 +100,7 @@ fn main() {
     println!("   Query: Product::query(&products).where_(price > 50).count()");
     
     let query4 = Product::query(&products)
-        .where_(Product::price_r(), |&p| p > 50.0);
+        .where_(Product::price(), |&p| p > 50.0);
     let count = query4.count();
     
     println!("   Products over $50: {}", count);
@@ -123,8 +123,8 @@ fn main() {
     
     let formatted: Vec<String> = products
         .lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&p| p < 500.0)
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&p| p < 500.0)
         .map_items(|p| format!("{} - ${:.2}", p.name, p.price))
         .collect();
     
@@ -139,7 +139,7 @@ fn main() {
     
     let total_stock = products
         .lazy_query()
-        .sum_by(Product::stock_r());
+        .sum_by(Product::stock());
     
     println!("   Total stock across all products: {}", total_stock);
     println!();
@@ -157,7 +157,7 @@ fn main() {
     
     let has_luxury = products
         .lazy_query()
-        .where_(Product::price_r(), |&p| p > 1000.0)
+        .where_(Product::price(), |&p| p > 1000.0)
         .any();
     
     println!("   Has products over $1000: {}", has_luxury);

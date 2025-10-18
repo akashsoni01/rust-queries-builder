@@ -3,10 +3,10 @@
 // cargo run --example without_clone
 
 use rust_queries_builder::{Query, JoinQuery};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 
 // Notice: NO Clone derive! This struct cannot be cloned.
-#[derive(Debug, Keypaths)]
+#[derive(Debug, Keypath)]
 struct Employee {
     id: u32,
     name: String,
@@ -18,7 +18,7 @@ struct Employee {
 }
 
 // Another struct without Clone
-#[derive(Debug, Keypaths)]
+#[derive(Debug, Keypath)]
 struct Department {
     id: u32,
     name: String,
@@ -75,7 +75,7 @@ fn main() {
     // 1. WHERE filtering - returns Vec<&T>
     println!("1. WHERE filtering (returns references)");
     let query = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Engineering");
+        .where_(Employee::department(), |dept| dept == "Engineering");
     let engineering = query.all();
     println!("   Found {} engineering employees", engineering.len());
     for emp in &engineering {
@@ -85,20 +85,20 @@ fn main() {
     // 2. COUNT - no cloning needed
     println!("\n2. COUNT aggregation");
     let count = Query::new(&employees)
-        .where_(Employee::salary_r(), |&sal| sal > 80000.0)
+        .where_(Employee::salary(), |&sal| sal > 80000.0)
         .count();
     println!("   {} employees earn over $80k", count);
 
     // 3. SELECT - only clones the selected field
     println!("\n3. SELECT (only selected fields are cloned)");
     let names: Vec<String> = Query::new(&employees)
-        .select(Employee::name_r());
+        .select(Employee::name());
     println!("   Employee names: {:?}", names);
 
     // 4. FIRST - returns Option<&T>
     println!("\n4. FIRST (returns reference)");
     let query = Query::new(&employees)
-        .where_(Employee::salary_r(), |&sal| sal > 90000.0);
+        .where_(Employee::salary(), |&sal| sal > 90000.0);
     if let Some(emp) = query.first() {
         println!("   First high earner: {} (${:.0})", emp.name, emp.salary);
     }
@@ -106,16 +106,16 @@ fn main() {
     // 5. SUM/AVG aggregations - no cloning
     println!("\n5. Aggregations (SUM/AVG)");
     let eng_query = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Engineering");
-    let total = eng_query.sum(Employee::salary_r());
-    let avg = eng_query.avg(Employee::salary_r()).unwrap_or(0.0);
+        .where_(Employee::department(), |dept| dept == "Engineering");
+    let total = eng_query.sum(Employee::salary());
+    let avg = eng_query.avg(Employee::salary()).unwrap_or(0.0);
     println!("   Engineering total: ${:.0}", total);
     println!("   Engineering average: ${:.0}", avg);
 
     // 6. MIN/MAX - no cloning
     println!("\n6. MIN/MAX");
-    let min = Query::new(&employees).min_float(Employee::salary_r());
-    let max = Query::new(&employees).max_float(Employee::salary_r());
+    let min = Query::new(&employees).min_float(Employee::salary());
+    let max = Query::new(&employees).max_float(Employee::salary());
     println!("   Salary range: ${:.0} - ${:.0}", min.unwrap(), max.unwrap());
 
     // 7. LIMIT - returns Vec<&T>
@@ -139,7 +139,7 @@ fn main() {
     // 9. EXISTS - just checks
     println!("\n9. EXISTS check");
     let has_sales = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Sales")
+        .where_(Employee::department(), |dept| dept == "Sales")
         .exists();
     println!("   Has Sales employees: {}", has_sales);
 
@@ -147,8 +147,8 @@ fn main() {
     println!("\n10. JOIN operations (no Clone required!)");
     let results = JoinQuery::new(&employees, &departments)
         .inner_join(
-            Employee::department_r(),
-            Department::name_r(),
+            Employee::department(),
+            Department::name(),
             |emp, dept| {
                 // Mapper only clones what it needs for the result
                 (emp.name.clone(), dept.budget)
@@ -169,7 +169,7 @@ fn main() {
     println!("   - group_by()");
     println!("\n   To use these, add #[derive(Clone)] to your struct:");
     println!("   ```rust");
-    println!("   #[derive(Clone, Keypaths)]  // Add Clone here");
+    println!("   #[derive(Clone, Keypath)]  // Add Clone here");
     println!("   struct Employee {{ ... }}");
     println!("   ```");
 

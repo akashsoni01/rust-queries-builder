@@ -10,9 +10,9 @@
 #[cfg(feature = "datetime")]
 use chrono::{DateTime, Utc, Duration, TimeZone};
 use rust_queries_builder::{Query, datetime::chrono_ops};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Event {
     id: u32,
     title: String,
@@ -106,7 +106,7 @@ fn main() {
     // SQL: SELECT * FROM events WHERE scheduled_at > '2024-10-20 12:00:00';
     let ref_date = reference_date.clone();
     let after_count = Query::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_after(dt, &ref_date)
         })
         .count();
@@ -118,7 +118,7 @@ fn main() {
     // SQL: SELECT * FROM events WHERE scheduled_at < '2024-10-20 12:00:00';
     let ref_date = reference_date.clone();
     let before_count = Query::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_before(dt, &ref_date)
         })
         .count();
@@ -131,7 +131,7 @@ fn main() {
     let start = start_date.clone();
     let end = end_date.clone();
     let between_count = Query::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_between(dt, &start, &end)
         })
         .count();
@@ -148,7 +148,7 @@ fn main() {
     // or:  SELECT * FROM events WHERE scheduled_at >= CURRENT_DATE AND scheduled_at < CURRENT_DATE + INTERVAL '1 day';
     let now_clone = now.clone();
     let today_count = Query::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_today(dt, &now_clone)
         })
         .count();
@@ -174,7 +174,7 @@ fn main() {
     // SQL: SELECT * FROM events WHERE scheduled_at < NOW();
     let now_clone = now.clone();
     let past_count = Query::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_past(dt, &now_clone)
         })
         .count();
@@ -186,7 +186,7 @@ fn main() {
     // SQL: SELECT * FROM events WHERE scheduled_at > NOW();
     let now_clone = now.clone();
     let future_count = Query::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_future(dt, &now_clone)
         })
         .count();
@@ -199,7 +199,7 @@ fn main() {
     // or:  SELECT * FROM events WHERE scheduled_at BETWEEN NOW() - INTERVAL '24 hours' AND NOW() + INTERVAL '24 hours';
     let ref_date = reference_date.clone();
     let within_24h = Query::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_within_duration(dt, &ref_date, Duration::hours(24))
         })
         .count();

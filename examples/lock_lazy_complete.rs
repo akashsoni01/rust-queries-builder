@@ -10,7 +10,7 @@
 // Run with: cargo run --example lock_lazy_complete --features datetime
 
 use rust_queries_builder::LockLazyQueryable;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 use std::time::{SystemTime, Duration as StdDuration};
@@ -18,7 +18,7 @@ use std::time::{SystemTime, Duration as StdDuration};
 #[cfg(feature = "datetime")]
 use chrono::{DateTime, Utc, Duration, TimeZone};
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -30,7 +30,7 @@ struct Product {
 }
 
 #[cfg(feature = "datetime")]
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Event {
     id: u32,
     title: String,
@@ -180,14 +180,14 @@ fn main() {
     println!("✓ where_(path, predicate) - Filter by predicate (lazy)");
     let electronics_query = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics");
+        .where_(Product::category(), |cat| cat == "Electronics");
     println!("  Set up electronics filter (no evaluation yet)\n");
 
     // count - Terminal operation
     println!("✓ count() - Count matching items (terminal)");
     let count = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .count();
     println!("  Electronics count: {}\n", count);
 
@@ -195,7 +195,7 @@ fn main() {
     println!("✓ first() - Get first matching item (terminal, early termination)");
     let first = products
         .lock_lazy_query()
-        .where_(Product::price_r(), |&p| p > 100.0)
+        .where_(Product::price(), |&p| p > 100.0)
         .first();
     if let Some(p) = first {
         println!("  First expensive product: {} (${:.2})\n", p.name, p.price);
@@ -205,7 +205,7 @@ fn main() {
     println!("✓ all() - Get all matching items (terminal)");
     let all_electronics = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .all();
     println!("  All electronics ({} items):", all_electronics.len());
     for p in &all_electronics {
@@ -217,7 +217,7 @@ fn main() {
     println!("✓ exists() / any() - Check if any match (terminal, early termination)");
     let has_expensive = products
         .lock_lazy_query()
-        .where_(Product::price_r(), |&p| p > 1000.0)
+        .where_(Product::price(), |&p| p > 1000.0)
         .exists();
     println!("  Has products over $1000: {}\n", has_expensive);
 
@@ -225,7 +225,7 @@ fn main() {
     println!("✓ limit(n) - Limit results (lazy)");
     let limited: Vec<_> = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s > 0)
+        .where_(Product::stock(), |&s| s > 0)
         .limit(3)
         .collect();
     println!("  First 3 in-stock products:");
@@ -251,7 +251,7 @@ fn main() {
     println!("✓ last() - Get last matching item (terminal)");
     let last = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .last();
     if let Some(p) = last {
         println!("  Last electronics: {}\n", p.name);
@@ -275,8 +275,8 @@ fn main() {
     println!("✓ select_lazy(path) - Project field (lazy)");
     let names: Vec<String> = products
         .lock_lazy_query()
-        .where_(Product::price_r(), |&p| p < 200.0)
-        .select_lazy(Product::name_r())
+        .where_(Product::price(), |&p| p < 200.0)
+        .select_lazy(Product::name())
         .collect();
     println!("  Affordable product names ({}):", names.len());
     for name in &names {
@@ -288,7 +288,7 @@ fn main() {
     println!("✓ distinct(path) - Get distinct values (terminal)");
     let categories = products
         .lock_lazy_query()
-        .distinct(Product::category_r());
+        .distinct(Product::category());
     println!("  Distinct categories: {:?}\n", categories);
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -300,34 +300,34 @@ fn main() {
 
     let electronics = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics");
+        .where_(Product::category(), |cat| cat == "Electronics");
 
     // sum
     println!("✓ sum(path) - Sum numeric field (terminal)");
     let total_price = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .sum(Product::price_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .sum(Product::price());
     println!("  Total electronics value: ${:.2}\n", total_price);
 
     // avg
     println!("✓ avg(path) - Average of f64 field (terminal)");
     let avg_price = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .avg(Product::price_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .avg(Product::price());
     println!("  Average electronics price: ${:.2}\n", avg_price.unwrap_or(0.0));
 
     // min / max
     println!("✓ min(path) / max(path) - Min/max of Ord field (terminal)");
     let min_stock = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .min(Product::stock_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .min(Product::stock());
     let max_stock = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .max(Product::stock_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .max(Product::stock());
     println!("  Min stock: {:?}", min_stock);
     println!("  Max stock: {:?}\n", max_stock);
 
@@ -335,12 +335,12 @@ fn main() {
     println!("✓ min_float(path) / max_float(path) - Min/max of f64 field (terminal)");
     let min_price = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .min_float(Product::price_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .min_float(Product::price());
     let max_price = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .max_float(Product::price_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .max_float(Product::price());
     println!("  Min price: ${:.2}", min_price.unwrap_or(0.0));
     println!("  Max price: ${:.2}\n", max_price.unwrap_or(0.0));
 
@@ -355,16 +355,16 @@ fn main() {
     println!("✓ all_match(path, predicate) - Check if all match (terminal)");
     let all_in_stock = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .all_match(Product::stock_r(), |&s| s > 0);
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .all_match(Product::stock(), |&s| s > 0);
     println!("  All electronics in stock: {}\n", all_in_stock);
 
     // find - Find first matching additional predicate
     println!("✓ find(path, predicate) - Find first with condition (terminal)");
     let expensive = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .find(Product::price_r(), |&p| p > 500.0);
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .find(Product::price(), |&p| p > 500.0);
     if let Some(p) = expensive {
         println!("  Found expensive electronics: {} (${:.2})\n", p.name, p.price);
     } else {
@@ -375,8 +375,8 @@ fn main() {
     println!("✓ count_where(path, predicate) - Count with condition (terminal)");
     let expensive_count = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .count_where(Product::price_r(), |&p| p > 100.0);
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .count_where(Product::price(), |&p| p > 100.0);
     println!("  Expensive electronics count: {}\n", expensive_count);
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -394,7 +394,7 @@ fn main() {
     println!("✓ where_after_systemtime(path, time) - Filter after SystemTime (lazy)");
     let recent_count = products
         .lock_lazy_query()
-        .where_after_systemtime(Product::created_at_r(), two_weeks_ago)
+        .where_after_systemtime(Product::created_at(), two_weeks_ago)
         .count();
     println!("  Products created in last 2 weeks: {}\n", recent_count);
 
@@ -402,7 +402,7 @@ fn main() {
     println!("✓ where_before_systemtime(path, time) - Filter before SystemTime (lazy)");
     let old_count = products
         .lock_lazy_query()
-        .where_before_systemtime(Product::created_at_r(), two_weeks_ago)
+        .where_before_systemtime(Product::created_at(), two_weeks_ago)
         .count();
     println!("  Products created before 2 weeks ago: {}\n", old_count);
 
@@ -410,7 +410,7 @@ fn main() {
     println!("✓ where_between_systemtime(path, start, end) - Filter within range (lazy)");
     let in_range = products
         .lock_lazy_query()
-        .where_between_systemtime(Product::created_at_r(), two_weeks_ago, one_week_ago)
+        .where_between_systemtime(Product::created_at(), two_weeks_ago, one_week_ago)
         .all();
     println!("  Products created 1-2 weeks ago: {}", in_range.len());
     for p in &in_range {
@@ -429,8 +429,8 @@ fn main() {
     println!("✓ order_by(path) - Sort ascending (terminal)");
     let sorted_by_name = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .order_by(Product::name_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .order_by(Product::name());
     println!("  Electronics sorted by name:");
     for p in sorted_by_name.iter().take(3) {
         println!("    • {}", p.name);
@@ -441,8 +441,8 @@ fn main() {
     println!("✓ order_by_desc(path) - Sort descending (terminal)");
     let sorted_desc = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .order_by_desc(Product::stock_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .order_by_desc(Product::stock());
     println!("  Electronics sorted by stock (desc):");
     for p in sorted_desc.iter().take(3) {
         println!("    • {} - Stock: {}", p.name, p.stock);
@@ -453,8 +453,8 @@ fn main() {
     println!("✓ order_by_float(path) - Sort f64 ascending (terminal)");
     let sorted_by_price = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .order_by_float(Product::price_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .order_by_float(Product::price());
     println!("  Electronics sorted by price:");
     for p in sorted_by_price.iter().take(3) {
         println!("    • {} - ${:.2}", p.name, p.price);
@@ -465,8 +465,8 @@ fn main() {
     println!("✓ order_by_float_desc(path) - Sort f64 descending (terminal)");
     let sorted_by_rating = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .order_by_float_desc(Product::rating_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .order_by_float_desc(Product::rating());
     println!("  Electronics sorted by rating (desc):");
     for p in sorted_by_rating.iter().take(3) {
         println!("    • {} - Rating: {:.1}", p.name, p.rating);
@@ -484,8 +484,8 @@ fn main() {
     println!("✓ group_by(path) - Group by field (terminal)");
     let by_category = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s > 0)
-        .group_by(Product::category_r());
+        .where_(Product::stock(), |&s| s > 0)
+        .group_by(Product::category());
     
     println!("  Products grouped by category:");
     for (category, items) in &by_category {
@@ -514,7 +514,7 @@ fn main() {
         println!("✓ where_after(path, time) - Filter after datetime (lazy)");
         let after = events
             .lock_lazy_query()
-            .where_after(Event::scheduled_at_r(), cutoff)
+            .where_after(Event::scheduled_at(), cutoff)
             .count();
         println!("  Events after Oct 2: {}\n", after);
 
@@ -522,7 +522,7 @@ fn main() {
         println!("✓ where_before(path, time) - Filter before datetime (lazy)");
         let before = events
             .lock_lazy_query()
-            .where_before(Event::scheduled_at_r(), cutoff)
+            .where_before(Event::scheduled_at(), cutoff)
             .count();
         println!("  Events before Oct 2: {}\n", before);
 
@@ -530,7 +530,7 @@ fn main() {
         println!("✓ where_between(path, start, end) - Filter within range (lazy)");
         let between = events
             .lock_lazy_query()
-            .where_between(Event::scheduled_at_r(), oct_start, oct_end)
+            .where_between(Event::scheduled_at(), oct_start, oct_end)
             .all();
         println!("  Events in October: {}", between.len());
         for e in &between {
@@ -543,7 +543,7 @@ fn main() {
         let today_ref = Utc.with_ymd_and_hms(2024, 10, 1, 15, 0, 0).unwrap();
         let today = events
             .lock_lazy_query()
-            .where_today(Event::scheduled_at_r(), today_ref)
+            .where_today(Event::scheduled_at(), today_ref)
             .all();
         println!("  Events on Oct 1: {}", today.len());
         for e in &today {
@@ -555,7 +555,7 @@ fn main() {
         println!("✓ where_year(path, year) - Filter by year (lazy)");
         let year_2024 = events
             .lock_lazy_query()
-            .where_year(Event::scheduled_at_r(), 2024)
+            .where_year(Event::scheduled_at(), 2024)
             .count();
         println!("  Events in 2024: {}\n", year_2024);
 
@@ -563,7 +563,7 @@ fn main() {
         println!("✓ where_month(path, month) - Filter by month (lazy)");
         let october = events
             .lock_lazy_query()
-            .where_month(Event::scheduled_at_r(), 10)
+            .where_month(Event::scheduled_at(), 10)
             .count();
         println!("  Events in October: {}\n", october);
 
@@ -571,7 +571,7 @@ fn main() {
         println!("✓ where_day(path, day) - Filter by day (lazy)");
         let first_day = events
             .lock_lazy_query()
-            .where_day(Event::scheduled_at_r(), 1)
+            .where_day(Event::scheduled_at(), 1)
             .count();
         println!("  Events on the 1st: {}\n", first_day);
 
@@ -579,7 +579,7 @@ fn main() {
         println!("✓ where_weekend(path) - Filter for weekends (lazy)");
         let weekend = events
             .lock_lazy_query()
-            .where_weekend(Event::scheduled_at_r())
+            .where_weekend(Event::scheduled_at())
             .all();
         println!("  Weekend events:");
         for e in &weekend {
@@ -591,7 +591,7 @@ fn main() {
         println!("✓ where_weekday(path) - Filter for weekdays (lazy)");
         let weekday = events
             .lock_lazy_query()
-            .where_weekday(Event::scheduled_at_r())
+            .where_weekday(Event::scheduled_at())
             .count();
         println!("  Weekday events: {}\n", weekday);
 
@@ -599,7 +599,7 @@ fn main() {
         println!("✓ where_business_hours(path) - Filter for business hours (lazy)");
         let business = events
             .lock_lazy_query()
-            .where_business_hours(Event::scheduled_at_r())
+            .where_business_hours(Event::scheduled_at())
             .all();
         println!("  Events during business hours:");
         for e in &business {
@@ -628,9 +628,9 @@ fn main() {
     println!("Example 1: First expensive, high-rated electronics");
     let complex1 = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&p| p > 100.0)
-        .where_(Product::rating_r(), |&r| r >= 4.5)
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&p| p > 100.0)
+        .where_(Product::rating(), |&r| r >= 4.5)
         .first();
     
     if let Some(p) = complex1 {
@@ -641,27 +641,27 @@ fn main() {
     println!("Example 2: Statistics for high-stock items");
     let high_stock_items = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s >= 20);
+        .where_(Product::stock(), |&s| s >= 20);
     
     println!("  Count: {}", high_stock_items.count());
     
     let total_value = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s >= 20)
-        .sum(Product::price_r());
+        .where_(Product::stock(), |&s| s >= 20)
+        .sum(Product::price());
     println!("  Total value: ${:.2}", total_value);
     
     let avg_rating = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s >= 20)
-        .avg(Product::rating_r());
+        .where_(Product::stock(), |&s| s >= 20)
+        .avg(Product::rating());
     println!("  Average rating: {:.2}\n", avg_rating.unwrap_or(0.0));
 
     // Complex 3: Pagination with ordering
     println!("Example 3: Top 2 products by price");
     let top_products = products
         .lock_lazy_query()
-        .order_by_float_desc(Product::price_r());
+        .order_by_float_desc(Product::price());
     
     println!("  Top 2 most expensive:");
     for p in top_products.iter().take(2) {

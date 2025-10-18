@@ -19,9 +19,9 @@
 /// ```ignore
 /// // Instead of:
 /// let results = LazyQuery::new(&products)
-///     .where_(Product::category_r(), |cat| cat == "Electronics")
-///     .where_(Product::price_r(), |&p| p < 500.0)
-///     .where_(Product::stock_r(), |&s| s > 0)
+///     .where_(Product::category(), |cat| cat == "Electronics")
+///     .where_(Product::price(), |&p| p < 500.0)
+///     .where_(Product::stock(), |&s| s > 0)
 ///     .collect();
 ///
 /// // Write:
@@ -48,7 +48,7 @@ macro_rules! lazy_query {
 ///
 /// ```ignore
 /// let results = query!(products, Product)
-///     .where_(Product::category_r(), |cat| cat == "Electronics")
+///     .where_(Product::category(), |cat| cat == "Electronics")
 ///     .all();
 /// ```
 #[macro_export]
@@ -64,10 +64,10 @@ macro_rules! query {
 ///
 /// ```ignore
 /// // Instead of:
-/// .where_(Product::price_r(), |&p| p < 100.0)
+/// .where_(Product::price(), |&p| p < 100.0)
 ///
 /// // Write:
-/// .where_(Product::price_r(), |&p| p < 100.0)  // Same for now, helper in query! macro
+/// .where_(Product::price(), |&p| p < 100.0)  // Same for now, helper in query! macro
 /// ```
 #[macro_export]
 macro_rules! filter {
@@ -83,7 +83,7 @@ macro_rules! filter {
 /// ```ignore
 /// // Instead of:
 /// let results: Vec<_> = LazyQuery::new(&products)
-///     .where_(Product::price_r(), |&p| p < 100.0)
+///     .where_(Product::price(), |&p| p < 100.0)
 ///     .collect();
 ///
 /// // Write:
@@ -101,7 +101,7 @@ macro_rules! collect_lazy {
 /// # Example
 ///
 /// ```ignore
-/// let results = filter_collect!(products, Product::category_r(), |cat| cat == "Electronics");
+/// let results = filter_collect!(products, Product::category(), |cat| cat == "Electronics");
 /// ```
 #[macro_export]
 macro_rules! filter_collect {
@@ -117,7 +117,7 @@ macro_rules! filter_collect {
 /// # Example
 ///
 /// ```ignore
-/// let count = count_where!(products, Product::stock_r(), |&s| s > 0);
+/// let count = count_where!(products, Product::stock(), |&s| s > 0);
 /// ```
 #[macro_export]
 macro_rules! count_where {
@@ -133,7 +133,7 @@ macro_rules! count_where {
 /// # Example
 ///
 /// ```ignore
-/// let found = find_first!(products, Product::id_r(), |&id| id == 42);
+/// let found = find_first!(products, Product::id(), |&id| id == 42);
 /// ```
 #[macro_export]
 macro_rules! find_first {
@@ -149,7 +149,7 @@ macro_rules! find_first {
 /// # Example
 ///
 /// ```ignore
-/// let exists = exists_where!(products, Product::category_r(), |cat| cat == "Electronics");
+/// let exists = exists_where!(products, Product::category(), |cat| cat == "Electronics");
 /// ```
 #[macro_export]
 macro_rules! exists_where {
@@ -182,7 +182,7 @@ macro_rules! paginate {
 /// # Example
 ///
 /// ```ignore
-/// let total = sum_where!(products, Product::price_r(), Product::stock_r(), |&s| s > 0);
+/// let total = sum_where!(products, Product::price(), Product::stock(), |&s| s > 0);
 /// ```
 #[macro_export]
 macro_rules! sum_where {
@@ -203,7 +203,7 @@ macro_rules! sum_where {
 /// # Example
 ///
 /// ```ignore
-/// let avg = avg_where!(products, Product::price_r(), Product::active_r(), |&a| a);
+/// let avg = avg_where!(products, Product::price(), Product::active(), |&a| a);
 /// ```
 #[macro_export]
 macro_rules! avg_where {
@@ -224,7 +224,7 @@ macro_rules! avg_where {
 /// # Example
 ///
 /// ```ignore
-/// let names = select_all!(products, Product::name_r());
+/// let names = select_all!(products, Product::name());
 /// ```
 #[macro_export]
 macro_rules! select_all {
@@ -242,8 +242,8 @@ macro_rules! select_all {
 /// ```ignore
 /// let names = select_where!(
 ///     products,
-///     Product::name_r(),
-///     Product::category_r(),
+///     Product::name(),
+///     Product::category(),
 ///     |cat| cat == "Electronics"
 /// );
 /// ```

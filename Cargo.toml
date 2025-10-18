@@ -14,8 +14,8 @@ rust-queries-core = { path = "rust-queries-core", version = "1.0.4" }
 rust-queries-derive = { path = "rust-queries-derive", version = "1.0.4" }
 
 # Re-exported for convenience
-key-paths-core = "1.0.2"
-key-paths-derive = "0.6.0"
+key-paths-core = { version = "1.0.8", features = ["tagged_core"] }
+key-paths-derive = { version = "1.0.2" }
 chrono = { version = "0.4", optional = true }
 
 [features]
@@ -133,4 +133,8 @@ path = "examples/parking_lot_support.rs"
 [[example]]
 name = "lazy_aggregators_demo"
 path = "examples/lazy_aggregators_demo.rs"
+
+[[example]]
+name = "keypath_showcase"
+path = "examples/keypath_showcase.rs"
 

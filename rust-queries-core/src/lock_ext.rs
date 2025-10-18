@@ -25,7 +25,7 @@
 //! // Direct method call!
 //! let expensive = products
 //!     .lock_query()
-//!     .where_(Product::price_r(), |&p| p > 500.0)
+//!     .where_(Product::price(), |&p| p > 500.0)
 //!     .all();
 //! ```
 //!
@@ -38,7 +38,7 @@
 //! async fn query_products(products: &HashMap<String, TokioRwLockWrapper<Product>>) {
 //!     let expensive = products
 //!         .lock_query()  // Direct method call!
-//!         .where_(Product::price_r(), |&p| p > 500.0)
+//!         .where_(Product::price(), |&p| p > 500.0)
 //!         .all();
 //! }
 //! ```

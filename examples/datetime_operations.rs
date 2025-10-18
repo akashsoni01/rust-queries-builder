@@ -11,10 +11,10 @@
 #[cfg(feature = "datetime")]
 use chrono::{DateTime, Utc, Duration, TimeZone};
 use rust_queries_builder::Query;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::time::SystemTime;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Event {
     id: u32,
     title: String,
@@ -133,7 +133,7 @@ fn main() {
     // Query 1: Events scheduled after now
     println!("--- Query 1: Upcoming Events (After Now) ---");
     let upcoming = Query::new(&events)
-        .where_after(Event::scheduled_at_r(), now);
+        .where_after(Event::scheduled_at(), now);
     
     for event in upcoming.all() {
         println!("  • {} - {}", event.title, event.scheduled_at.format("%Y-%m-%d %H:%M"));
@@ -143,7 +143,7 @@ fn main() {
     println!("\n--- Query 2: Events Before December 2024 ---");
     let cutoff = Utc.with_ymd_and_hms(2024, 12, 1, 0, 0, 0).unwrap();
     let before_dec = Query::new(&events)
-        .where_before(Event::scheduled_at_r(), cutoff);
+        .where_before(Event::scheduled_at(), cutoff);
     
     for event in before_dec.all() {
         println!("  • {} - {}", event.title, event.scheduled_at.format("%Y-%m-%d"));
@@ -154,7 +154,7 @@ fn main() {
     let start = Utc.with_ymd_and_hms(2024, 10, 15, 0, 0, 0).unwrap();
     let end = Utc.with_ymd_and_hms(2024, 11, 15, 23, 59, 59).unwrap();
     let in_range = Query::new(&events)
-        .where_between(Event::scheduled_at_r(), start, end);
+        .where_between(Event::scheduled_at(), start, end);
     
     for event in in_range.all() {
         println!("  • {} - {} - Priority: {}", 
@@ -167,7 +167,7 @@ fn main() {
     // Query 4: Events scheduled today
     println!("\n--- Query 4: Events Scheduled Today ---");
     let today = Query::new(&events)
-        .where_today(Event::scheduled_at_r(), now);
+        .where_today(Event::scheduled_at(), now);
     
     let today_events = today.all();
     if today_events.is_empty() {
@@ -181,8 +181,8 @@ fn main() {
     // Query 5: Events in December 2024
     println!("\n--- Query 5: Events in December 2024 ---");
     let december = Query::new(&events)
-        .where_year(Event::scheduled_at_r(), 2024)
-        .where_month(Event::scheduled_at_r(), 12);
+        .where_year(Event::scheduled_at(), 2024)
+        .where_month(Event::scheduled_at(), 12);
     
     for event in december.all() {
         println!("  • {} - {}", event.title, event.scheduled_at.format("%Y-%m-%d"));
@@ -191,7 +191,7 @@ fn main() {
     // Query 6: Weekend events
     println!("\n--- Query 6: Weekend Events ---");
     let weekend = Query::new(&events)
-        .where_weekend(Event::scheduled_at_r());
+        .where_weekend(Event::scheduled_at());
     
     for event in weekend.all() {
         println!("  • {} - {} ({})", 
@@ -204,8 +204,8 @@ fn main() {
     // Query 7: Weekday work events
     println!("\n--- Query 7: Weekday Work Events ---");
     let weekday_work = Query::new(&events)
-        .where_weekday(Event::scheduled_at_r())
-        .where_(Event::category_r(), |cat| cat == "Work");
+        .where_weekday(Event::scheduled_at())
+        .where_(Event::category(), |cat| cat == "Work");
     
     for event in weekday_work.all() {
         println!("  • {} - {} ({})", 
@@ -218,7 +218,7 @@ fn main() {
     // Query 8: Events during business hours
     println!("\n--- Query 8: Events During Business Hours (9 AM - 5 PM) ---");
     let business_hours = Query::new(&events)
-        .where_business_hours(Event::scheduled_at_r());
+        .where_business_hours(Event::scheduled_at());
     
     for event in business_hours.all() {
         println!("  • {} - {}", 
@@ -230,8 +230,8 @@ fn main() {
     // Query 9: High priority events in the future
     println!("\n--- Query 9: High Priority Upcoming Events (Priority >= 4) ---");
     let high_priority = Query::new(&events)
-        .where_after(Event::scheduled_at_r(), now)
-        .where_(Event::priority_r(), |&p| p >= 4);
+        .where_after(Event::scheduled_at(), now)
+        .where_(Event::priority(), |&p| p >= 4);
     
     for event in high_priority.all() {
         println!("  • {} - {} - Priority: {}", 
@@ -245,7 +245,7 @@ fn main() {
     println!("\n--- Query 10: Events in Next 7 Days ---");
     let next_week = now + Duration::days(7);
     let this_week = Query::new(&events)
-        .where_between(Event::scheduled_at_r(), now, next_week);
+        .where_between(Event::scheduled_at(), now, next_week);
     
     for event in this_week.all() {
         let days_from_now = (event.scheduled_at - now).num_days();
@@ -283,22 +283,22 @@ fn main() {
     // Query 12: Statistics using datetime operations
     println!("\n--- Query 12: Event Statistics ---");
     let work_events = Query::new(&events)
-        .where_(Event::category_r(), |cat| cat == "Work");
+        .where_(Event::category(), |cat| cat == "Work");
     
     let personal_events = Query::new(&events)
-        .where_(Event::category_r(), |cat| cat == "Personal");
+        .where_(Event::category(), |cat| cat == "Personal");
     
     println!("  Total Events: {}", events.len());
     println!("  Work Events: {}", work_events.count());
     println!("  Personal Events: {}", personal_events.count());
     
     let weekend_count = Query::new(&events)
-        .where_weekend(Event::scheduled_at_r())
+        .where_weekend(Event::scheduled_at())
         .count();
     println!("  Weekend Events: {}", weekend_count);
     
     let business_hours_count = Query::new(&events)
-        .where_business_hours(Event::scheduled_at_r())
+        .where_business_hours(Event::scheduled_at())
         .count();
     println!("  Business Hours Events: {}", business_hours_count);
 
@@ -306,10 +306,10 @@ fn main() {
     println!("\n--- Query 13: Complex Query ---");
     println!("High-priority work events on weekdays during business hours:");
     let complex = Query::new(&events)
-        .where_(Event::category_r(), |cat| cat == "Work")
-        .where_(Event::priority_r(), |&p| p >= 3)
-        .where_weekday(Event::scheduled_at_r())
-        .where_business_hours(Event::scheduled_at_r());
+        .where_(Event::category(), |cat| cat == "Work")
+        .where_(Event::priority(), |&p| p >= 3)
+        .where_weekday(Event::scheduled_at())
+        .where_business_hours(Event::scheduled_at());
     
     for event in complex.all() {
         println!("  • {} - {} - Priority: {}", 
@@ -326,7 +326,7 @@ fn main() {
     println!("Events within 24 hours:");
     let now_clone = now.clone();
     let within_24h = Query::new(&events)
-        .where_(Event::scheduled_at_r(), move |dt| {
+        .where_(Event::scheduled_at(), move |dt| {
             chrono_ops::is_within_duration(dt, &now_clone, Duration::hours(24))
         });
     
@@ -339,7 +339,7 @@ fn main() {
     println!("\n--- Query 15: Events on Specific Days of Month ---");
     println!("Events on the 15th of any month:");
     let on_15th = Query::new(&events)
-        .where_day(Event::scheduled_at_r(), 15);
+        .where_day(Event::scheduled_at(), 15);
     
     for event in on_15th.all() {
         println!("  • {} - {}", 

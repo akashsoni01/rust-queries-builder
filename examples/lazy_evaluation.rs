@@ -4,14 +4,14 @@
 // cargo run --example lazy_evaluation
 
 use rust_queries_builder::LazyQuery;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 // Counter to track how many times predicates are evaluated
 static FILTER_EVALUATIONS: AtomicUsize = AtomicUsize::new(0);
 static EXPENSIVE_OPERATIONS: AtomicUsize = AtomicUsize::new(0);
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -63,7 +63,7 @@ fn main() {
 
     println!("Building query (should execute nothing)...");
     let lazy_query = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| {
+        .where_(Product::category(), |cat| {
             FILTER_EVALUATIONS.fetch_add(1, Ordering::SeqCst);
             cat == "Electronics"
         });
@@ -94,7 +94,7 @@ fn main() {
 
     println!("Finding first 5 expensive items from 1000 products...");
     let first_5: Vec<_> = LazyQuery::new(&products)
-        .where_(Product::price_r(), |p| expensive_check(p))
+        .where_(Product::price(), |p| expensive_check(p))
         .take_lazy(5)
         .collect();
 
@@ -116,9 +116,9 @@ fn main() {
 
     println!("Chaining multiple operations...");
     let chained_query = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&price| price > 200.0)
-        .where_(Product::stock_r(), |&stock| stock > 10)
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&price| price > 200.0)
+        .where_(Product::stock(), |&stock| stock > 10)
         .take_lazy(10);
 
     println!("  Built query with 3 filters + take(10)");
@@ -137,8 +137,8 @@ fn main() {
 
     println!("Selecting names (lazy)...");
     let names: Vec<String> = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .select_lazy(Product::name_r())
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .select_lazy(Product::name())
         .take(5)  // Only process until we have 5
         .collect();
 
@@ -156,7 +156,7 @@ fn main() {
 
     println!("Checking if ANY electronics exist (1000 items to search)...");
     let exists = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| {
+        .where_(Product::category(), |cat| {
             FILTER_EVALUATIONS.fetch_add(1, Ordering::SeqCst);
             cat == "Electronics"
         })
@@ -182,7 +182,7 @@ fn main() {
 
     println!("Finding first product with price > 500...");
     let found = LazyQuery::new(&products)
-        .where_(Product::price_r(), |&price| {
+        .where_(Product::price(), |&price| {
             FILTER_EVALUATIONS.fetch_add(1, Ordering::SeqCst);
             price > 500.0
         })
@@ -204,19 +204,19 @@ fn main() {
 
     println!("Building base query...");
     let base_query = LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics");
+        .where_(Product::category(), |cat| cat == "Electronics");
 
     println!("  Created base query (not executed)\n");
 
     println!("  Adding price filter...");
     let refined_query = base_query
-        .where_(Product::price_r(), |&price| price > 100.0);
+        .where_(Product::price(), |&price| price > 100.0);
 
     println!("  Still not executed...\n");
 
     println!("  Adding stock filter and limiting...");
     let final_query = refined_query
-        .where_(Product::stock_r(), |&stock| stock > 5)
+        .where_(Product::stock(), |&stock| stock > 5)
         .take_lazy(10);
 
     println!("  Still not executed...\n");
@@ -235,7 +235,7 @@ fn main() {
     println!("Iterating over filtered products...");
     let mut count = 0;
     for product in LazyQuery::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .take_lazy(3)
     {
         println!("  • {}: ${:.2}", product.name, product.price);
@@ -264,7 +264,7 @@ fn main() {
     
     println!("With lazy evaluation:");
     let _first = LazyQuery::new(&products)
-        .where_(Product::price_r(), |p| expensive_check(p))
+        .where_(Product::price(), |p| expensive_check(p))
         .first();
 
     let ops = EXPENSIVE_OPERATIONS.load(Ordering::SeqCst);

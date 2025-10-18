@@ -13,13 +13,13 @@
 
 // Note: We can't directly implement LockQueryable/LockLazyQueryable for HashMap<K, TokioLock<V>>
 // due to Rust's orphan rules. Instead, we use helper functions.
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock as TokioRwLock;
 use std::time::Instant;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct User {
     id: u32,
     name: String,
@@ -28,7 +28,7 @@ struct User {
     score: f64,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -251,7 +251,7 @@ async fn main() {
 
     println!("--- Find active users ---");
     let active_users = lock_query(&users)
-        .where_(User::status_r(), |s| s == "active")
+        .where_(User::status(), |s| s == "active")
         .all();
     
     println!("  Found: {} active users", active_users.len());
@@ -262,7 +262,7 @@ async fn main() {
 
     println!("--- Find products in Electronics category ---");
     let electronics = lock_query(&products)
-        .where_(Product::category_r(), |c| c == "Electronics")
+        .where_(Product::category(), |c| c == "Electronics")
         .all();
     
     println!("  Found: {} electronics", electronics.len());
@@ -280,7 +280,7 @@ async fn main() {
 
     println!("--- SELECT user names ---");
     let names: Vec<String> = lock_query(&users)
-        .select(User::name_r());
+        .select(User::name());
     
     println!("  Extracted: {} names", names.len());
     for name in &names {
@@ -297,7 +297,7 @@ async fn main() {
 
     println!("--- Users ordered by score (descending) ---");
     let ordered = lock_query(&users)
-        .order_by_float_desc(User::score_r());
+        .order_by_float_desc(User::score());
     
     println!("  Top users by score:");
     for user in ordered.iter().take(3) {
@@ -314,21 +314,21 @@ async fn main() {
 
     println!("--- COUNT active users ---");
     let count = lock_query(&users)
-        .where_(User::status_r(), |s| s == "active")
+        .where_(User::status(), |s| s == "active")
         .count();
     println!("  Active users: {}", count);
     println!("  SQL: SELECT COUNT(*) FROM users WHERE status = 'active';\n");
 
     println!("--- AVG user score ---");
     let avg_score = lock_query(&users)
-        .avg(User::score_r())
+        .avg(User::score())
         .unwrap_or(0.0);
     println!("  Average score: {:.2}", avg_score);
     println!("  SQL: SELECT AVG(score) FROM users;\n");
 
     println!("--- SUM of product stock ---");
     let total_stock: u32 = lock_query(&products)
-        .sum(Product::stock_r());
+        .sum(Product::stock());
     println!("  Total stock: {} units", total_stock);
     println!("  SQL: SELECT SUM(stock) FROM products;\n");
 
@@ -341,7 +341,7 @@ async fn main() {
 
     println!("--- Products grouped by category ---");
     let by_category = lock_query(&products)
-        .group_by(Product::category_r());
+        .group_by(Product::category());
     
     println!("  Categories: {}", by_category.len());
     for (category, items) in &by_category {
@@ -360,7 +360,7 @@ async fn main() {
 
     println!("--- FIRST: Find first inactive user ---");
     let first_inactive = lock_lazy_query(&users)
-        .where_(User::status_r(), |s| s == "inactive")
+        .where_(User::status(), |s| s == "inactive")
         .first();
     
     match first_inactive {
@@ -371,7 +371,7 @@ async fn main() {
 
     println!("--- EXISTS: Check if any out-of-stock products ---");
     let out_of_stock = lock_lazy_query(&products)
-        .where_(Product::stock_r(), |&s| s == 0)
+        .where_(Product::stock(), |&s| s == 0)
         .any();
     
     println!("  Out of stock products exist? {}", out_of_stock);
@@ -379,7 +379,7 @@ async fn main() {
 
     println!("--- TAKE: First 2 active users ---");
     let first_two: Vec<_> = lock_lazy_query(&users)
-        .where_(User::status_r(), |s| s == "active")
+        .where_(User::status(), |s| s == "active")
         .take_lazy(2)
         .collect();
     
@@ -398,9 +398,9 @@ async fn main() {
 
     println!("--- Active users with high scores (>= 90) ---");
     let high_scorers = lock_query(&users)
-        .where_(User::status_r(), |s| s == "active")
-        .where_(User::score_r(), |&score| score >= 90.0)
-        .order_by_float_desc(User::score_r());
+        .where_(User::status(), |s| s == "active")
+        .where_(User::score(), |&score| score >= 90.0)
+        .order_by_float_desc(User::score());
     
     println!("  Found: {} high-scoring active users", high_scorers.len());
     for user in &high_scorers {
@@ -410,9 +410,9 @@ async fn main() {
 
     println!("--- Affordable in-stock electronics ---");
     let affordable = lock_query(&products)
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .where_(Product::price_r(), |&p| p < 100.0)
-        .where_(Product::stock_r(), |&s| s > 0)
+        .where_(Product::category(), |c| c == "Electronics")
+        .where_(Product::price(), |&p| p < 100.0)
+        .where_(Product::stock(), |&s| s > 0)
         .all();
     
     println!("  Found: {} affordable electronics in stock", affordable.len());
@@ -439,7 +439,7 @@ async fn main() {
     // Eager
     let start = Instant::now();
     let eager_all = lock_query(&large_users)
-        .where_(User::status_r(), |s| s == "inactive")
+        .where_(User::status(), |s| s == "inactive")
         .all();
     let _eager_first = eager_all.first().cloned();
     let eager_time = start.elapsed();
@@ -447,7 +447,7 @@ async fn main() {
     // Lazy
     let start = Instant::now();
     let _lazy_first = lock_lazy_query(&large_users)
-        .where_(User::status_r(), |s| s == "inactive")
+        .where_(User::status(), |s| s == "inactive")
         .first();
     let lazy_time = start.elapsed();
     
@@ -464,7 +464,7 @@ async fn main() {
     // Eager
     let start = Instant::now();
     let eager_all = lock_query(&large_products)
-        .where_(Product::price_r(), |&p| p > 900.0)
+        .where_(Product::price(), |&p| p > 900.0)
         .all();
     let _eager_exists = !eager_all.is_empty();
     let eager_time = start.elapsed();
@@ -472,7 +472,7 @@ async fn main() {
     // Lazy
     let start = Instant::now();
     let _lazy_exists = lock_lazy_query(&large_products)
-        .where_(Product::price_r(), |&p| p > 900.0)
+        .where_(Product::price(), |&p| p > 900.0)
         .any();
     let lazy_time = start.elapsed();
     

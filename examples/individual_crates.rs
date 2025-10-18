@@ -13,9 +13,9 @@
 // Import from individual crates
 use rust_queries_core::{Query, QueryExt};  // Core functionality (LazyQuery available via QueryExt)
 use rust_queries_derive::QueryBuilder;      // Derive macro
-use key_paths_derive::Keypaths;             // Key-paths
+use key_paths_derive::Keypath;             // Key-paths
 
-#[derive(Debug, Clone, Keypaths, QueryBuilder)]
+#[derive(Debug, Clone, Keypath, QueryBuilder)]
 struct Product {
     id: u32,
     name: String,
@@ -72,7 +72,7 @@ fn main() {
     
     let query = products
         .query()  // From QueryExt trait
-        .where_(Product::price_r(), |&p| p > 100.0);
+        .where_(Product::price(), |&p| p > 100.0);
     let expensive = query.all();
     
     println!("   Found {} expensive products:", expensive.len());
@@ -85,7 +85,7 @@ fn main() {
     println!("   Product::query(&products).where_(stock < 10).all()");
     
     let query2 = Product::query(&products)  // From QueryBuilder derive
-        .where_(Product::stock_r(), |&s| s < 10);
+        .where_(Product::stock(), |&s| s < 10);
     let low_stock = query2.all();
     
     println!("   Found {} low stock products:", low_stock.len());
@@ -99,7 +99,7 @@ fn main() {
     
     let electronics: Vec<_> = products
         .lazy_query()  // From QueryExt trait
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .collect();
     
     println!("   Found {} electronics:", electronics.len());
@@ -109,11 +109,11 @@ fn main() {
     println!();
 
     println!("4. Aggregations with LazyQuery");
-    println!("   products.lazy_query().sum_by(Product::price_r())");
+    println!("   products.lazy_query().sum_by(Product::price())");
     
     let total_value: f64 = products
         .lazy_query()
-        .sum_by(Product::price_r());
+        .sum_by(Product::price());
     
     println!("   Total inventory value: ${:.2}", total_value);
     println!();
@@ -123,7 +123,7 @@ fn main() {
     
     if let Some(first_cheap) = products
         .lazy_query()
-        .where_(Product::price_r(), |&p| p < 50.0)
+        .where_(Product::price(), |&p| p < 50.0)
         .first()
     {
         println!("   First cheap product: {} (${:.2})", first_cheap.name, first_cheap.price);
@@ -134,7 +134,7 @@ fn main() {
     println!("   Query::new(&products).where_(...).count()");
     
     let query3 = Query::new(&products)  // Traditional approach
-        .where_(Product::price_r(), |&p| p > 50.0);
+        .where_(Product::price(), |&p| p > 50.0);
     let count = query3.count();
     
     println!("   Products over $50: {}", count);
@@ -144,7 +144,7 @@ fn main() {
     println!("--------");
     println!("✓ rust_queries_core provides: Query, LazyQuery, QueryExt");
     println!("✓ rust_queries_derive provides: #[derive(QueryBuilder)]");
-    println!("✓ key_paths_derive provides: #[derive(Keypaths)]");
+    println!("✓ key_paths_derive provides: #[derive(Keypath)]");
     println!("✓ All features work with individual crates!");
 }
 

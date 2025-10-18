@@ -11,8 +11,8 @@
 //! // Define a reusable view
 //! let active_electronics = LockView::new(|map: &ProductMap| {
 //!     map.lock_query()
-//!         .where_(Product::active_r(), |&a| a)
-//!         .where_(Product::category_r(), |cat| cat == "Electronics")
+//!         .where_(Product::active(), |&a| a)
+//!         .where_(Product::category(), |cat| cat == "Electronics")
 //! });
 //!
 //! // Use the view multiple times
@@ -47,7 +47,7 @@ where
     ///
     /// ```ignore
     /// let expensive_view = LockView::new(|query| {
-    ///     query.where_(Product::price_r(), |&p| p > 500.0)
+    ///     query.where_(Product::price(), |&p| p > 500.0)
     /// });
     /// ```
     pub fn new(builder: F) -> Self {
@@ -90,7 +90,7 @@ where
     /// let mat_view = MaterializedLockView::new(|| {
     ///     product_map
     ///         .lock_query()
-    ///         .where_(Product::active_r(), |&a| a)
+    ///         .where_(Product::active(), |&a| a)
     ///         .all()
     /// });
     /// ```
@@ -126,9 +126,9 @@ mod tests {
     use super::*;
     use std::sync::{Arc, RwLock};
     use std::collections::HashMap;
-    use key_paths_derive::Keypaths;
+    use key_paths_derive::Keypath;
 
-    #[derive(Clone, Keypaths)]
+    #[derive(Clone, Keypath)]
     struct Product {
         id: u32,
         name: String,

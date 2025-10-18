@@ -2,9 +2,9 @@
 // cargo run --example doc_examples
 
 use rust_queries_builder::{Query, JoinQuery};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -14,13 +14,13 @@ struct Product {
     rating: f64,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct User {
     id: u32,
     name: String,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Order {
     id: u32,
     user_id: u32,
@@ -40,8 +40,8 @@ fn main() {
         ];
 
         let affordable_query = Query::new(&products)
-            .where_(Product::category_r(), |cat| cat == "Electronics")
-            .where_(Product::price_r(), |&price| price < 100.0);
+            .where_(Product::category(), |cat| cat == "Electronics")
+            .where_(Product::price(), |&price| price < 100.0);
         let affordable_electronics = affordable_query.all();
 
         println!("  Found {} affordable electronics ✅", affordable_electronics.len());
@@ -55,7 +55,7 @@ fn main() {
         ];
 
         let electronics_query = Query::new(&products)
-            .where_(Product::category_r(), |cat| cat == "Electronics");
+            .where_(Product::category(), |cat| cat == "Electronics");
         let electronics = electronics_query.all();
 
         println!("  Found {} electronics ✅", electronics.len());
@@ -70,7 +70,7 @@ fn main() {
         ];
 
         let names: Vec<String> = Query::new(&products)
-            .select(Product::name_r());
+            .select(Product::name());
 
         println!("  Selected {} names ✅", names.len());
     }
@@ -83,7 +83,7 @@ fn main() {
             Product { id: 2, name: "Mouse".to_string(), price: 29.99, category: "Electronics".to_string(), stock: 50, rating: 4.0 },
         ];
 
-        let by_price = Query::new(&products).order_by_float(Product::price_r());
+        let by_price = Query::new(&products).order_by_float(Product::price());
         println!("  Ordered {} products ✅", by_price.len());
     }
 
@@ -96,11 +96,11 @@ fn main() {
         ];
 
         let electronics_query = Query::new(&products)
-            .where_(Product::category_r(), |cat| cat == "Electronics");
+            .where_(Product::category(), |cat| cat == "Electronics");
 
         let count = electronics_query.count();
-        let total_value: f64 = electronics_query.sum(Product::price_r());
-        let avg_price = electronics_query.avg(Product::price_r()).unwrap_or(0.0);
+        let total_value: f64 = electronics_query.sum(Product::price());
+        let avg_price = electronics_query.avg(Product::price()).unwrap_or(0.0);
 
         println!("  Count: {}, Total: ${:.2}, Avg: ${:.2} ✅", count, total_value, avg_price);
     }
@@ -114,7 +114,7 @@ fn main() {
             Product { id: 3, name: "Desk".to_string(), price: 299.99, category: "Furniture".to_string(), stock: 10, rating: 4.8 },
         ];
 
-        let by_category = Query::new(&products).group_by(Product::category_r());
+        let by_category = Query::new(&products).group_by(Product::category());
         println!("  Grouped into {} categories ✅", by_category.len());
     }
 
@@ -149,8 +149,8 @@ fn main() {
         ];
 
         let user_orders = JoinQuery::new(&users, &orders).inner_join(
-            User::id_r(),
-            Order::user_id_r(),
+            User::id(),
+            Order::user_id(),
             |user, order| (user.name.clone(), order.total),
         );
 
@@ -160,7 +160,7 @@ fn main() {
     // Example from SQL_COMPARISON - SELECT with WHERE
     println!("\nTest 9: SQL Comparison - SELECT with WHERE");
     {
-        #[derive(Clone, Keypaths)]
+        #[derive(Clone, Keypath)]
         struct Employee {
             department: String,
         }
@@ -171,7 +171,7 @@ fn main() {
         ];
 
         let engineering_query = Query::new(&employees)
-            .where_(Employee::department_r(), |dept| dept == "Engineering");
+            .where_(Employee::department(), |dept| dept == "Engineering");
         let engineering = engineering_query.all();
 
         println!("  Found {} engineering employees ✅", engineering.len());
@@ -185,10 +185,10 @@ fn main() {
         ];
 
         let results_query = Query::new(&products)
-            .where_(Product::category_r(), |cat| cat == "Electronics")
-            .where_(Product::price_r(), |&price| price >= 100.0 && price <= 500.0)
-            .where_(Product::stock_r(), |&stock| stock > 10);
-        let results = results_query.order_by_float(Product::price_r());
+            .where_(Product::category(), |cat| cat == "Electronics")
+            .where_(Product::price(), |&price| price >= 100.0 && price <= 500.0)
+            .where_(Product::stock(), |&stock| stock > 10);
+        let results = results_query.order_by_float(Product::price());
 
         println!("  Filtered {} products ✅", results.len());
     }

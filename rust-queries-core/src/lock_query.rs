@@ -15,9 +15,9 @@
 //!
 //! // Full SQL-like syntax on locked data!
 //! let expensive = LockQuery::new(&products)
-//!     .where_(Product::category_r(), |cat| cat == "Electronics")
-//!     .where_(Product::price_r(), |&p| p > 500.0)
-//!     .order_by_float(Product::rating_r())
+//!     .where_(Product::category(), |cat| cat == "Electronics")
+//!     .where_(Product::price(), |&p| p > 500.0)
+//!     .order_by_float(Product::rating())
 //!     .limit(10);
 //! ```
 
@@ -64,7 +64,7 @@ where
     ///
     /// ```ignore
     /// let query = LockQuery::new(&products)
-    ///     .where_(Product::category_r(), |cat| cat == "Electronics");
+    ///     .where_(Product::category(), |cat| cat == "Electronics");
     /// ```
     pub fn where_<F>(mut self, path: KeyPaths<T, F>, predicate: impl Fn(&F) -> bool + 'a) -> Self
     where
@@ -192,7 +192,7 @@ where
     /// # Example
     ///
     /// ```ignore
-    /// let names: Vec<String> = query.select(Product::name_r());
+    /// let names: Vec<String> = query.select(Product::name());
     /// ```
     pub fn select<F>(&self, path: KeyPaths<T, F>) -> Vec<F>
     where
@@ -218,7 +218,7 @@ where
     /// # Example
     ///
     /// ```ignore
-    /// let total = query.sum(Product::price_r());
+    /// let total = query.sum(Product::price());
     /// ```
     pub fn sum<F>(&self, path: KeyPaths<T, F>) -> F
     where
@@ -244,7 +244,7 @@ where
     /// # Example
     ///
     /// ```ignore
-    /// let avg = query.avg(Product::price_r());
+    /// let avg = query.avg(Product::price());
     /// ```
     pub fn avg(&self, path: KeyPaths<T, f64>) -> Option<f64> {
         let values: Vec<f64> = self.select(path);
@@ -260,7 +260,7 @@ where
     /// # Example
     ///
     /// ```ignore
-    /// let min = query.min(Product::stock_r());
+    /// let min = query.min(Product::stock());
     /// ```
     pub fn min<F>(&self, path: KeyPaths<T, F>) -> Option<F>
     where
@@ -274,7 +274,7 @@ where
     /// # Example
     ///
     /// ```ignore
-    /// let max = query.max(Product::stock_r());
+    /// let max = query.max(Product::stock());
     /// ```
     pub fn max<F>(&self, path: KeyPaths<T, F>) -> Option<F>
     where
@@ -302,7 +302,7 @@ where
     /// # Example
     ///
     /// ```ignore
-    /// let sorted = query.order_by(Product::name_r());
+    /// let sorted = query.order_by(Product::name());
     /// ```
     pub fn order_by<F>(&self, path: KeyPaths<T, F>) -> Vec<T>
     where
@@ -362,7 +362,7 @@ where
     /// # Example
     ///
     /// ```ignore
-    /// let groups = query.group_by(Product::category_r());
+    /// let groups = query.group_by(Product::category());
     /// ```
     pub fn group_by<F>(&self, path: KeyPaths<T, F>) -> HashMap<F, Vec<T>>
     where
@@ -484,9 +484,9 @@ impl<T> LockLazyQueryable<T, Arc<Mutex<T>>> for Vec<Arc<Mutex<T>>> {
 mod tests {
     use super::*;
     use std::sync::{Arc, RwLock};
-    use key_paths_derive::Keypaths;
+    use key_paths_derive::Keypath;
 
-    #[derive(Clone, Keypaths)]
+    #[derive(Clone, Keypath)]
     struct Product {
         id: u32,
         name: String,
@@ -531,7 +531,7 @@ mod tests {
         let map = create_test_map();
         let query = map.lock_query();
         let count = query
-            .where_(Product::category_r(), |cat| cat == "Electronics")
+            .where_(Product::category(), |cat| cat == "Electronics")
             .count();
         assert_eq!(count, 2);
     }
@@ -541,7 +541,7 @@ mod tests {
         let map = create_test_map();
         let names = map
             .lock_query()
-            .select(Product::name_r());
+            .select(Product::name());
         assert_eq!(names.len(), 3);
     }
 
@@ -550,7 +550,7 @@ mod tests {
         let map = create_test_map();
         let total = map
             .lock_query()
-            .sum(Product::price_r());
+            .sum(Product::price());
         assert!((total - 1329.97).abs() < 0.01);
     }
 
@@ -559,7 +559,7 @@ mod tests {
         let map = create_test_map();
         let groups = map
             .lock_query()
-            .group_by(Product::category_r());
+            .group_by(Product::category());
         assert_eq!(groups.len(), 2);
         assert_eq!(groups.get("Electronics").unwrap().len(), 2);
     }
@@ -569,7 +569,7 @@ mod tests {
         let map = create_test_map();
         let sorted = map
             .lock_query()
-            .order_by_float(Product::price_r());
+            .order_by_float(Product::price());
         assert_eq!(sorted[0].price, 29.99);
         assert_eq!(sorted[2].price, 999.99);
     }

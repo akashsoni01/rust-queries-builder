@@ -12,12 +12,12 @@ use rust_queries_builder::{
     LockQueryable, LockLazyQueryable, LockJoinQuery,
     MaterializedLockView,
 };
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct User {
     id: u32,
     name: String,
@@ -25,7 +25,7 @@ struct User {
     status: String,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Order {
     id: u32,
     user_id: u32,
@@ -33,7 +33,7 @@ struct Order {
     status: String,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -152,8 +152,8 @@ fn main() {
     
     let user_orders = LockJoinQuery::new(user_locks, order_locks)
         .inner_join(
-            User::id_r(),
-            Order::user_id_r(),
+            User::id(),
+            Order::user_id(),
             |user, order| {
                 (user.name.clone(), order.id, order.total, order.status.clone())
             }
@@ -185,8 +185,8 @@ fn main() {
     
     let all_users = LockJoinQuery::new(user_locks, order_locks)
         .left_join(
-            User::id_r(),
-            Order::user_id_r(),
+            User::id(),
+            Order::user_id(),
             |user, order_opt| {
                 match order_opt {
                     Some(order) => format!("{} has order #{} (${:.2})", user.name, order.id, order.total),
@@ -221,8 +221,8 @@ fn main() {
     
     let all_orders = LockJoinQuery::new(user_locks, order_locks)
         .right_join(
-            User::id_r(),
-            Order::user_id_r(),
+            User::id(),
+            Order::user_id(),
             |user_opt, order| {
                 match user_opt {
                     Some(user) => format!("Order #{} by {}", order.id, user.name),
@@ -285,7 +285,7 @@ fn main() {
     let mut active_users_view = MaterializedLockView::new(move || {
         users_clone
             .lock_query()
-            .where_(User::status_r(), |s| s == "active")
+            .where_(User::status(), |s| s == "active")
             .all()
     });
     let duration = start.elapsed();
@@ -330,7 +330,7 @@ fn main() {
     let start = Instant::now();
     let eager_completed = orders
         .lock_query()
-        .where_(Order::status_r(), |s| s == "completed")
+        .where_(Order::status(), |s| s == "completed")
         .all();
     let eager_result = eager_completed.into_iter().take(2).collect::<Vec<_>>();
     let eager_duration = start.elapsed();
@@ -339,7 +339,7 @@ fn main() {
     let start = Instant::now();
     let lazy_completed: Vec<_> = orders
         .lock_lazy_query()
-        .where_(Order::status_r(), |s| s == "completed")
+        .where_(Order::status(), |s| s == "completed")
         .take_lazy(2)
         .collect();
     let lazy_duration = start.elapsed();
@@ -355,8 +355,8 @@ fn main() {
     let start = Instant::now();
     let filtered: Vec<_> = orders
         .lock_lazy_query()
-        .where_(Order::status_r(), |s| s == "completed")
-        .where_(Order::total_r(), |&t| t > 100.0)
+        .where_(Order::status(), |s| s == "completed")
+        .where_(Order::total(), |&t| t > 100.0)
         .take_lazy(1)
         .collect();
     let duration = start.elapsed();
@@ -373,8 +373,8 @@ fn main() {
     let start = Instant::now();
     let names: Vec<String> = users
         .lock_lazy_query()
-        .where_(User::status_r(), |s| s == "active")
-        .select_lazy(User::name_r())
+        .where_(User::status(), |s| s == "active")
+        .select_lazy(User::name())
         .take(2)
         .collect();
     let duration = start.elapsed();
@@ -391,7 +391,7 @@ fn main() {
     let start = Instant::now();
     let exists = users
         .lock_lazy_query()
-        .where_(User::status_r(), |s| s == "inactive")
+        .where_(User::status(), |s| s == "inactive")
         .any();
     let duration = start.elapsed();
     
@@ -404,7 +404,7 @@ fn main() {
     let start = Instant::now();
     let first_order = orders
         .lock_lazy_query()
-        .where_(Order::status_r(), |s| s == "pending")
+        .where_(Order::status(), |s| s == "pending")
         .first();
     let duration = start.elapsed();
     
@@ -422,7 +422,7 @@ fn main() {
     let start = Instant::now();
     let count: usize = users
         .lock_lazy_query()
-        .where_(User::status_r(), |s| s == "active")
+        .where_(User::status(), |s| s == "active")
         .take_lazy(10)
         .collect::<Vec<_>>()
         .len();
@@ -439,9 +439,9 @@ fn main() {
     let start = Instant::now();
     let complex: Vec<_> = orders
         .lock_lazy_query()
-        .where_(Order::status_r(), |s| s == "completed" || s == "pending")
-        .where_(Order::total_r(), |&t| t > 50.0)
-        .where_(Order::total_r(), |&t| t < 200.0)
+        .where_(Order::status(), |s| s == "completed" || s == "pending")
+        .where_(Order::total(), |&t| t > 50.0)
+        .where_(Order::total(), |&t| t < 200.0)
         .take_lazy(5)
         .collect();
     let duration = start.elapsed();
@@ -480,7 +480,7 @@ fn main() {
     
     let user_locks: Vec<_> = users
         .lock_query()
-        .where_(User::status_r(), |s| s == "active")
+        .where_(User::status(), |s| s == "active")
         .limit(100)  // Pre-filter users
         .iter()
         .map(|u| Arc::new(RwLock::new(u.clone())))
@@ -488,8 +488,8 @@ fn main() {
     
     let order_locks: Vec<_> = orders
         .lock_query()
-        .where_(Order::status_r(), |s| s == "completed")
-        .where_(Order::total_r(), |&t| t > 100.0)
+        .where_(Order::status(), |s| s == "completed")
+        .where_(Order::total(), |&t| t > 100.0)
         .limit(100)  // Pre-filter orders
         .iter()
         .map(|o| Arc::new(RwLock::new(o.clone())))
@@ -500,8 +500,8 @@ fn main() {
     
     let filtered_joins = LockJoinQuery::new(user_lock_refs, order_lock_refs)
         .inner_join(
-            User::id_r(),
-            Order::user_id_r(),
+            User::id(),
+            Order::user_id(),
             |user, order| {
                 format!("{} - Order #{} - ${:.2}", user.name, order.id, order.total)
             }
@@ -535,8 +535,8 @@ fn main() {
     let users_with_orders_view = MaterializedLockView::new(move || {
         orders_clone
             .lock_query()
-            .where_(Order::status_r(), |s| s == "completed")
-            .select(Order::user_id_r())
+            .where_(Order::status(), |s| s == "completed")
+            .select(Order::user_id())
     });
     
     println!("  Subquery result: {} user IDs", users_with_orders_view.count());
@@ -545,7 +545,7 @@ fn main() {
     let user_ids_with_orders = users_with_orders_view.get();
     let active_buyers: Vec<_> = users
         .lock_query()
-        .where_(User::id_r(), |id| user_ids_with_orders.contains(id))
+        .where_(User::id(), |id| user_ids_with_orders.contains(id))
         .all();
     
     println!("  Final result: {} users", active_buyers.len());
@@ -574,8 +574,8 @@ fn main() {
     
     let user_totals = LockJoinQuery::new(user_locks, order_locks)
         .inner_join(
-            User::id_r(),
-            Order::user_id_r(),
+            User::id(),
+            Order::user_id(),
             |user, order| (user.name.clone(), order.total)
         );
     
@@ -607,8 +607,8 @@ fn main() {
     println!("--- UNION: Expensive products OR highly rated products ---");
     let expensive = products
         .lock_query()
-        .where_(Product::price_r(), |&p| p > 500.0)
-        .select(Product::name_r());
+        .where_(Product::price(), |&p| p > 500.0)
+        .select(Product::name());
     
     let _highly_rated: Vec<String> = vec![];  // Placeholder for second query
     
@@ -656,7 +656,7 @@ fn main() {
         let start = Instant::now();
         let eager_all = large_users
             .lock_query()
-            .where_(User::status_r(), |s| s == "inactive")
+            .where_(User::status(), |s| s == "inactive")
             .all();
         let eager_first = eager_all.first().cloned();
         let eager_time = start.elapsed();
@@ -665,7 +665,7 @@ fn main() {
         let start = Instant::now();
         let lazy_first = large_users
             .lock_lazy_query()
-            .where_(User::status_r(), |s| s == "inactive")
+            .where_(User::status(), |s| s == "inactive")
             .first();
         let lazy_time = start.elapsed();
         
@@ -687,7 +687,7 @@ fn main() {
         let start = Instant::now();
         let eager_all = large_users
             .lock_query()
-            .where_(User::status_r(), |s| s == "active")
+            .where_(User::status(), |s| s == "active")
             .all();
         let eager_first_n: Vec<_> = eager_all.into_iter().take(take_n).collect();
         let eager_time = start.elapsed();
@@ -696,7 +696,7 @@ fn main() {
         let start = Instant::now();
         let lazy_first_n: Vec<_> = large_users
             .lock_lazy_query()
-            .where_(User::status_r(), |s| s == "active")
+            .where_(User::status(), |s| s == "active")
             .take_lazy(take_n)
             .collect();
         let lazy_time = start.elapsed();
@@ -719,7 +719,7 @@ fn main() {
         let start = Instant::now();
         let eager_all = large_products
             .lock_query()
-            .where_(Product::price_r(), |&p| p > 900.0)
+            .where_(Product::price(), |&p| p > 900.0)
             .all();
         let eager_exists = !eager_all.is_empty();
         let eager_time = start.elapsed();
@@ -728,7 +728,7 @@ fn main() {
         let start = Instant::now();
         let lazy_exists = large_products
             .lock_lazy_query()
-            .where_(Product::price_r(), |&p| p > 900.0)
+            .where_(Product::price(), |&p| p > 900.0)
             .any();
         let lazy_time = start.elapsed();
         
@@ -751,8 +751,8 @@ fn main() {
         let start = Instant::now();
         let eager_filtered = large_orders
             .lock_query()
-            .where_(Order::status_r(), |s| s == "completed")
-            .where_(Order::total_r(), |&t| t > 200.0)
+            .where_(Order::status(), |s| s == "completed")
+            .where_(Order::total(), |&t| t > 200.0)
             .all();
         let eager_result: Vec<_> = eager_filtered.into_iter().take(take_n).collect();
         let eager_time = start.elapsed();
@@ -761,8 +761,8 @@ fn main() {
         let start = Instant::now();
         let lazy_result: Vec<_> = large_orders
             .lock_lazy_query()
-            .where_(Order::status_r(), |s| s == "completed")
-            .where_(Order::total_r(), |&t| t > 200.0)
+            .where_(Order::status(), |s| s == "completed")
+            .where_(Order::total(), |&t| t > 200.0)
             .take_lazy(take_n)
             .collect();
         let lazy_time = start.elapsed();
@@ -787,7 +787,7 @@ fn main() {
         let start = Instant::now();
         let eager_names = large_products
             .lock_query()
-            .select(Product::name_r());
+            .select(Product::name());
         let eager_result: Vec<_> = eager_names.into_iter().take(take_n).collect();
         let eager_time = start.elapsed();
         
@@ -795,7 +795,7 @@ fn main() {
         let start = Instant::now();
         let lazy_result: Vec<String> = large_products
             .lock_lazy_query()
-            .select_lazy(Product::name_r())
+            .select_lazy(Product::name())
             .take(take_n)
             .collect();
         let lazy_time = start.elapsed();

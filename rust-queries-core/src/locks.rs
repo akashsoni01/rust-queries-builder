@@ -24,7 +24,7 @@
 //! // Query without copying!
 //! let electronics: Vec<_> = products
 //!     .query_locks()
-//!     .where_(Product::category_r(), |cat| cat == "Electronics")
+//!     .where_(Product::category(), |cat| cat == "Electronics")
 //!     .collect();
 //! ```
 

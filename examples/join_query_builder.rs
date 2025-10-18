@@ -8,11 +8,11 @@
 // cargo run --example join_query_builder
 
 use rust_queries_builder::JoinQuery;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 
 // Database schema: Users, Orders, Products
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct User {
     id: u32,
     name: String,
@@ -20,7 +20,7 @@ struct User {
     city: String,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Order {
     id: u32,
     user_id: u32,
@@ -29,7 +29,7 @@ struct Order {
     total: f64,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -203,8 +203,8 @@ fn main() {
     // Join 1: Inner join Users and Orders
     println!("--- Join 1: Users with Their Orders ---");
     let user_orders = JoinQuery::new(&users, &orders).inner_join(
-        User::id_r(),
-        Order::user_id_r(),
+        User::id(),
+        Order::user_id(),
         |user, order| UserOrder {
             user_name: user.name.clone(),
             user_email: user.email.clone(),
@@ -227,8 +227,8 @@ fn main() {
     
     // First join: Orders with Users
     let orders_with_users = JoinQuery::new(&orders, &users).inner_join(
-        Order::user_id_r(),
-        User::id_r(),
+        Order::user_id(),
+        User::id(),
         |order, user| (order.clone(), user.clone()),
     );
 
@@ -261,8 +261,8 @@ fn main() {
     
     // Use left_join to get all users with their orders (or None)
     let user_order_pairs = JoinQuery::new(&users, &orders).left_join(
-        User::id_r(),
-        Order::user_id_r(),
+        User::id(),
+        Order::user_id(),
         |user, order| (user.clone(), order.map(|o| o.clone())),
     );
 
@@ -306,8 +306,8 @@ fn main() {
 
     // Join orders with products to get category information
     let order_products = JoinQuery::new(&orders, &products).inner_join(
-        Order::product_id_r(),
-        Product::id_r(),
+        Order::product_id(),
+        Product::id(),
         |order, product| (order.clone(), product.clone()),
     );
 
@@ -350,8 +350,8 @@ fn main() {
     // Join 5: Filtered join - High value orders
     println!("\n--- Join 5: High Value Orders (>$100) with User Details ---");
     let high_value_orders = JoinQuery::new(&orders, &users).inner_join_where(
-        Order::user_id_r(),
-        User::id_r(),
+        Order::user_id(),
+        User::id(),
         |order, _user| order.total > 100.0,
         |order, user| (user.name.clone(), order.id, order.total),
     );
@@ -363,8 +363,8 @@ fn main() {
     // Join 6: Users in same city analysis
     println!("\n--- Join 6: Users from Same City ---");
     let user_pairs = JoinQuery::new(&users, &users).inner_join_where(
-        User::city_r(),
-        User::city_r(),
+        User::city(),
+        User::city(),
         |u1, u2| u1.id < u2.id, // Avoid duplicates and self-pairs
         |u1, u2| (u1.name.clone(), u2.name.clone(), u1.city.clone()),
     );
@@ -378,8 +378,8 @@ fn main() {
     
     // Join orders with products
     let product_order_pairs = JoinQuery::new(&products, &orders).inner_join(
-        Product::id_r(),
-        Order::product_id_r(),
+        Product::id(),
+        Order::product_id(),
         |product, order| (product.clone(), order.clone()),
     );
 
@@ -409,8 +409,8 @@ fn main() {
     
     // Join users with orders to get city and spending info
     let user_city_orders = JoinQuery::new(&users, &orders).inner_join(
-        User::id_r(),
-        Order::user_id_r(),
+        User::id(),
+        Order::user_id(),
         |user, order| (user.city.clone(), order.total, user.id),
     );
 

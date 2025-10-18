@@ -17,10 +17,10 @@ use rust_queries_builder::lock_ext::{
     ParkingLotRwLockWrapper, ParkingLotQueryExt, ParkingLotJoinExt
 };
 
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -29,7 +29,7 @@ struct Product {
     stock: u32,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Order {
     id: u32,
     product_id: u32,
@@ -89,7 +89,7 @@ fn demo_parking_lot() {
 
     let electronics = products
         .lock_query()  // Direct method call!
-        .where_(Product::category_r(), |c| c == "Electronics")
+        .where_(Product::category(), |c| c == "Electronics")
         .all();
     
     println!("Found {} electronics:", electronics.len());
@@ -107,7 +107,7 @@ fn demo_parking_lot() {
 
     let available = products
         .lock_lazy_query()  // Direct method call!
-        .where_(Product::stock_r(), |&s| s > 0)
+        .where_(Product::stock(), |&s| s > 0)
         .all();  // New .all() method (alias for collect)
     
     println!("Products in stock ({}):", available.len());
@@ -126,8 +126,8 @@ fn demo_parking_lot() {
     // Select only names (not full objects)
     let names: Vec<String> = products
         .lock_lazy_query()
-        .where_(Product::price_r(), |&p| p > 100.0)
-        .select_lazy(Product::name_r())
+        .where_(Product::price(), |&p| p > 100.0)
+        .select_lazy(Product::name())
         .collect();
     
     println!("Expensive product names only:");
@@ -139,8 +139,8 @@ fn demo_parking_lot() {
     // Select only IDs
     let ids: Vec<u32> = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s > 10)
-        .select_lazy(Product::id_r())
+        .where_(Product::stock(), |&s| s > 10)
+        .select_lazy(Product::id())
         .collect();
     
     println!("IDs of well-stocked products: {:?}", ids);
@@ -149,8 +149,8 @@ fn demo_parking_lot() {
     // Select prices and compute sum
     let total: f64 = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .select_lazy(Product::price_r())
+        .where_(Product::category(), |c| c == "Electronics")
+        .select_lazy(Product::price())
         .sum();
     
     println!("Total value of electronics: ${:.2}", total);
@@ -191,8 +191,8 @@ fn demo_parking_lot() {
     let results = products
         .lock_join(&orders)  // Direct .lock_join() call!
         .inner_join(
-            Product::id_r(),
-            Order::product_id_r(),
+            Product::id(),
+            Order::product_id(),
             |product, order| {
                 (product.name.clone(), order.quantity, order.total)
             }
@@ -209,8 +209,8 @@ fn demo_parking_lot() {
     let all_products = products
         .lock_join(&orders)  // Direct .lock_join() call!
         .left_join(
-            Product::id_r(),
-            Order::product_id_r(),
+            Product::id(),
+            Order::product_id(),
             |product, order_opt| {
                 match order_opt {
                     Some(order) => format!("{} - Ordered: {} units", product.name, order.quantity),
@@ -234,10 +234,10 @@ fn demo_parking_lot() {
     // Chained WHERE clauses with select_lazy
     let expensive_electronics: Vec<String> = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .where_(Product::price_r(), |&p| p > 200.0)
-        .where_(Product::stock_r(), |&s| s > 0)
-        .select_lazy(Product::name_r())
+        .where_(Product::category(), |c| c == "Electronics")
+        .where_(Product::price(), |&p| p > 200.0)
+        .where_(Product::stock(), |&s| s > 0)
+        .select_lazy(Product::name())
         .collect();
     
     println!("Expensive electronics in stock:");
@@ -249,13 +249,13 @@ fn demo_parking_lot() {
     // Aggregations
     let avg_price = products
         .lock_query()
-        .where_(Product::stock_r(), |&s| s > 0)
-        .avg(Product::price_r())
+        .where_(Product::stock(), |&s| s > 0)
+        .avg(Product::price())
         .unwrap_or(0.0);
     
     let total_stock: u32 = products
         .lock_query()
-        .sum(Product::stock_r());
+        .sum(Product::stock());
     
     println!("Statistics:");
     println!("  • Average price (in stock): ${:.2}", avg_price);

@@ -9,12 +9,12 @@
 // cargo run --example sql_like_lock_queries --release
 
 use rust_queries_builder::{LockQueryable, LockLazyQueryable};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -72,7 +72,7 @@ fn main() {
     let start = Instant::now();
     let electronics = products
         .lock_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .all();
     let duration = start.elapsed();
     
@@ -84,8 +84,8 @@ fn main() {
     let start = Instant::now();
     let expensive_electronics = products
         .lock_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&p| p > 100.0)
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&p| p > 100.0)
         .all();
     let duration = start.elapsed();
     
@@ -106,7 +106,7 @@ fn main() {
     let start = Instant::now();
     let names = products
         .lock_query()
-        .select(Product::name_r());
+        .select(Product::name());
     let duration = start.elapsed();
     
     println!("  Found: {} names in {:?}", names.len(), duration);
@@ -119,8 +119,8 @@ fn main() {
     let start = Instant::now();
     let furniture_prices = products
         .lock_query()
-        .where_(Product::category_r(), |cat| cat == "Furniture")
-        .select(Product::price_r());
+        .where_(Product::category(), |cat| cat == "Furniture")
+        .select(Product::price());
     let duration = start.elapsed();
     
     println!("  Found: {} prices in {:?}", furniture_prices.len(), duration);
@@ -140,7 +140,7 @@ fn main() {
     let start = Instant::now();
     let sorted_by_price = products
         .lock_query()
-        .order_by_float(Product::price_r());
+        .order_by_float(Product::price());
     let duration = start.elapsed();
     
     println!("  Sorted {} products in {:?}", sorted_by_price.len(), duration);
@@ -154,7 +154,7 @@ fn main() {
     let start = Instant::now();
     let sorted_by_rating = products
         .lock_query()
-        .order_by_float_desc(Product::rating_r());
+        .order_by_float_desc(Product::rating());
     let duration = start.elapsed();
     
     println!("  Sorted {} products in {:?}", sorted_by_rating.len(), duration);
@@ -175,7 +175,7 @@ fn main() {
     let start = Instant::now();
     let by_category = products
         .lock_query()
-        .group_by(Product::category_r());
+        .group_by(Product::category());
     let duration = start.elapsed();
     
     println!("  Grouped into {} categories in {:?}", by_category.len(), duration);
@@ -197,15 +197,15 @@ fn main() {
     println!("--- Aggregations for Electronics Category ---");
     let electronics_query = products
         .lock_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics");
+        .where_(Product::category(), |cat| cat == "Electronics");
 
     let start = Instant::now();
     let count = electronics_query.count();
-    let total_value = electronics_query.sum(Product::price_r());
-    let avg_price = electronics_query.avg(Product::price_r()).unwrap_or(0.0);
-    let min_price = electronics_query.min_float(Product::price_r()).unwrap_or(0.0);
-    let max_price = electronics_query.max_float(Product::price_r()).unwrap_or(0.0);
-    let total_stock = electronics_query.sum(Product::stock_r());
+    let total_value = electronics_query.sum(Product::price());
+    let avg_price = electronics_query.avg(Product::price()).unwrap_or(0.0);
+    let min_price = electronics_query.min_float(Product::price()).unwrap_or(0.0);
+    let max_price = electronics_query.max_float(Product::price()).unwrap_or(0.0);
+    let total_stock = electronics_query.sum(Product::stock());
     let duration = start.elapsed();
     
     println!("  Count: {} (in {:?})", count, duration);
@@ -250,10 +250,10 @@ fn main() {
     let start = Instant::now();
     let results = products
         .lock_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&p| p < 200.0)
-        .where_(Product::rating_r(), |&r| r > 4.5)
-        .order_by_float(Product::price_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&p| p < 200.0)
+        .where_(Product::rating(), |&r| r > 4.5)
+        .order_by_float(Product::price());
     let duration = start.elapsed();
     
     println!("  Found: {} products in {:?}", results.len(), duration);
@@ -278,7 +278,7 @@ fn main() {
     let start = Instant::now();
     let active_products: Vec<_> = products
         .lock_lazy_query()
-        .where_(Product::active_r(), |&a| a)
+        .where_(Product::active(), |&a| a)
         .take_lazy(3)
         .collect();
     let duration = start.elapsed();
@@ -293,8 +293,8 @@ fn main() {
     let start = Instant::now();
     let top_names: Vec<String> = products
         .lock_lazy_query()
-        .where_(Product::rating_r(), |&r| r > 4.5)
-        .select_lazy(Product::name_r())
+        .where_(Product::rating(), |&r| r > 4.5)
+        .select_lazy(Product::name())
         .take(5)
         .collect();
     let duration = start.elapsed();
@@ -316,7 +316,7 @@ fn main() {
     let start = Instant::now();
     let has_expensive = products
         .lock_query()
-        .where_(Product::price_r(), |&p| p > 1000.0)
+        .where_(Product::price(), |&p| p > 1000.0)
         .exists();
     let duration = start.elapsed();
     
@@ -334,7 +334,7 @@ fn main() {
     let start = Instant::now();
     let first_furniture = products
         .lock_query()
-        .where_(Product::category_r(), |cat| cat == "Furniture")
+        .where_(Product::category(), |cat| cat == "Furniture")
         .first();
     let duration = start.elapsed();
     
@@ -354,7 +354,7 @@ fn main() {
     let start = Instant::now();
     let grouped = products
         .lock_query()
-        .group_by(Product::category_r());
+        .group_by(Product::category());
     let duration = start.elapsed();
     
     println!("  Grouped in {:?}\n", duration);
@@ -385,9 +385,9 @@ fn main() {
     let start = Instant::now();
     let top_electronics = products
         .lock_query()
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::active_r(), |&a| a)
-        .order_by_float_desc(Product::rating_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::active(), |&a| a)
+        .order_by_float_desc(Product::rating());
     let duration = start.elapsed();
     
     println!("  Found top {} electronics in {:?}", top_electronics.len().min(3), duration);
@@ -411,12 +411,12 @@ fn main() {
     let start = Instant::now();
     
     let total_products = products.lock_query().count();
-    let total_value = products.lock_query().sum(Product::price_r());
-    let avg_price = products.lock_query().avg(Product::price_r()).unwrap_or(0.0);
-    let min_price = products.lock_query().min_float(Product::price_r()).unwrap_or(0.0);
-    let max_price = products.lock_query().max_float(Product::price_r()).unwrap_or(0.0);
-    let total_stock = products.lock_query().sum(Product::stock_r());
-    let active_count = products.lock_query().where_(Product::active_r(), |&a| a).count();
+    let total_value = products.lock_query().sum(Product::price());
+    let avg_price = products.lock_query().avg(Product::price()).unwrap_or(0.0);
+    let min_price = products.lock_query().min_float(Product::price()).unwrap_or(0.0);
+    let max_price = products.lock_query().max_float(Product::price()).unwrap_or(0.0);
+    let total_stock = products.lock_query().sum(Product::stock());
+    let active_count = products.lock_query().where_(Product::active(), |&a| a).count();
     
     let duration = start.elapsed();
     

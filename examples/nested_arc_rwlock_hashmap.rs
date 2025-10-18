@@ -5,13 +5,13 @@
 // cargo run --example nested_arc_rwlock_hashmap
 
 use rust_queries_builder::locks::{LockQueryExt, LockIterExt};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct User {
     id: u32,
     username: String,

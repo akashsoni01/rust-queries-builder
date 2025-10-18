@@ -3,10 +3,10 @@
 // cargo run --example container_support
 
 use rust_queries_builder::{Query, LazyQuery};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::{HashMap, HashSet, BTreeMap, BTreeSet, VecDeque, LinkedList};
 
-#[derive(Debug, Clone, Keypaths, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Keypath, PartialEq, Eq, Hash, PartialOrd, Ord)]
 struct Product {
     id: u32,
     name: String,
@@ -44,13 +44,13 @@ fn main() {
 
     // Query Vec directly
     let vec_query = Query::new(&vec_products)
-        .where_(Product::category_r(), |cat| cat == "Electronics");
+        .where_(Product::category(), |cat| cat == "Electronics");
     let vec_results = vec_query.all();
     println!("  Vec: Found {} electronics", vec_results.len());
 
     // Lazy query on Vec
     let lazy_count = LazyQuery::new(&vec_products)
-        .where_(Product::price_r(), |&p| p < 100)
+        .where_(Product::price(), |&p| p < 100)
         .count();
     println!("  Vec (lazy): {} items under $100", lazy_count);
 
@@ -92,14 +92,14 @@ fn main() {
     // Collect from HashSet to Vec for querying
     let set_vec: Vec<Product> = set_products.iter().cloned().collect();
     let set_query = Query::new(&set_vec)
-        .where_(Product::price_r(), |&p| p > 500);
+        .where_(Product::price(), |&p| p > 500);
     let expensive = set_query.all();
     println!("  HashSet: {} expensive items", expensive.len());
 
     // Lazy on HashSet (convert to owned Vec first)
     let set_owned: Vec<Product> = set_products.iter().cloned().collect();
     let lazy_set: Vec<_> = LazyQuery::new(&set_owned)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
+        .where_(Product::category(), |cat| cat == "Electronics")
         .collect();
     println!("  HashSet (lazy): {} electronics", lazy_set.len());
 
@@ -139,7 +139,7 @@ fn main() {
     // Query HashMap values (convert to owned Vec)
     let map_vec: Vec<Product> = map_products.values().cloned().collect();
     let map_query = Query::new(&map_vec)
-        .where_(Product::category_r(), |cat| cat == "Electronics");
+        .where_(Product::category(), |cat| cat == "Electronics");
     let electronics = map_query.all();
     println!("  HashMap: {} electronics", electronics.len());
 
@@ -157,7 +157,7 @@ fn main() {
 
     let btree_map_vec: Vec<Product> = btree_map.values().cloned().collect();
     let btree_map_query = Query::new(&btree_map_vec);
-    let avg_price = btree_map_query.sum(Product::price_r()) as f64 / btree_map.len() as f64;
+    let avg_price = btree_map_query.sum(Product::price()) as f64 / btree_map.len() as f64;
     println!("  BTreeMap: Average price ${:.2}", avg_price);
 
     // ============================================================================
@@ -175,12 +175,12 @@ fn main() {
 
     // Query array directly (as slice)
     let array_query = Query::new(&array_products);
-    let total = array_query.sum(Product::price_r());
+    let total = array_query.sum(Product::price());
     println!("  Array: Total value ${}", total);
 
     // Lazy on array
     let lazy_array: Vec<_> = LazyQuery::new(&array_products)
-        .where_(Product::price_r(), |&p| p > 20)
+        .where_(Product::price(), |&p| p > 20)
         .collect();
     println!("  Array (lazy): {} items over $20", lazy_array.len());
 

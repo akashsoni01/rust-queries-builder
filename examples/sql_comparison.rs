@@ -4,11 +4,11 @@
 // cargo run --example sql_comparison
 
 use rust_queries_builder::{Query, JoinQuery};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use rust_queries_core::QueryExt;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Employee {
     id: u32,
     name: String,
@@ -18,7 +18,7 @@ struct Employee {
     city: String,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Department {
     id: u32,
     name: String,
@@ -26,7 +26,7 @@ struct Department {
     location: String,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Project {
     id: u32,
     name: String,
@@ -102,7 +102,7 @@ fn main() {
     );
 
     let eng_query = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Engineering");
+        .where_(Employee::department(), |dept| dept == "Engineering");
     let engineering_employees = eng_query.all();
 
     for emp in &engineering_employees {
@@ -110,7 +110,7 @@ fn main() {
     }
     println!("\nRust Query Builder:");
     println!("Query::new(&employees)");
-    println!("    .where_(Employee::department_r(), |dept| dept == \"Engineering\")");
+    println!("    .where_(Employee::department(), |dept| dept == \"Engineering\")");
     println!("    .all()");
     println!("✓ Found {} employees", engineering_employees.len());
 
@@ -124,16 +124,16 @@ fn main() {
     );
 
     let high_earners = Query::new(&employees)
-        .where_(Employee::salary_r(), |&salary| salary > 80000.0)
-        .select(Employee::name_r());
+        .where_(Employee::salary(), |&salary| salary > 80000.0)
+        .select(Employee::name());
 
     for name in &high_earners {
         println!("  {}", name);
     }
     println!("\nRust Query Builder:");
     println!("Query::new(&employees)");
-    println!("    .where_(Employee::salary_r(), |&salary| salary > 80000.0)");
-    println!("    .select(Employee::name_r())");
+    println!("    .where_(Employee::salary(), |&salary| salary > 80000.0)");
+    println!("    .select(Employee::name())");
     println!("✓ Found {} employees", high_earners.len());
 
     // ============================================================================
@@ -146,13 +146,13 @@ fn main() {
     );
 
     let young_count = Query::new(&employees)
-        .where_(Employee::age_r(), |&age| age < 30)
+        .where_(Employee::age(), |&age| age < 30)
         .count();
 
     println!("  Count: {}", young_count);
     println!("\nRust Query Builder:");
     println!("Query::new(&employees)");
-    println!("    .where_(Employee::age_r(), |&age| age < 30)");
+    println!("    .where_(Employee::age(), |&age| age < 30)");
     println!("    .count()");
     println!("✓ Result: {}", young_count);
 
@@ -171,12 +171,12 @@ fn main() {
     );
 
     let eng_query = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Engineering");
+        .where_(Employee::department(), |dept| dept == "Engineering");
 
-    let total = eng_query.sum(Employee::salary_r());
-    let avg = eng_query.avg(Employee::salary_r()).unwrap_or(0.0);
-    let min = eng_query.min_float(Employee::salary_r()).unwrap_or(0.0);
-    let max = eng_query.max_float(Employee::salary_r()).unwrap_or(0.0);
+    let total = eng_query.sum(Employee::salary());
+    let avg = eng_query.avg(Employee::salary()).unwrap_or(0.0);
+    let min = eng_query.min_float(Employee::salary()).unwrap_or(0.0);
+    let max = eng_query.max_float(Employee::salary()).unwrap_or(0.0);
 
     println!("  Total Salary: ${:.2}", total);
     println!("  Avg Salary:   ${:.2}", avg);
@@ -185,11 +185,11 @@ fn main() {
 
     println!("\nRust Query Builder:");
     println!("let query = Query::new(&employees)");
-    println!("    .where_(Employee::department_r(), |dept| dept == \"Engineering\");");
-    println!("query.sum(Employee::salary_r())  // ${:.2}", total);
-    println!("query.avg(Employee::salary_r())  // ${:.2}", avg);
-    println!("query.min_float(Employee::salary_r())  // ${:.2}", min);
-    println!("query.max_float(Employee::salary_r())  // ${:.2}", max);
+    println!("    .where_(Employee::department(), |dept| dept == \"Engineering\");");
+    println!("query.sum(Employee::salary())  // ${:.2}", total);
+    println!("query.avg(Employee::salary())  // ${:.2}", avg);
+    println!("query.min_float(Employee::salary())  // ${:.2}", min);
+    println!("query.max_float(Employee::salary())  // ${:.2}", max);
 
     // ============================================================================
     // EXAMPLE 5: GROUP BY with aggregation
@@ -205,20 +205,20 @@ fn main() {
         "Statistics by department"
     );
 
-    let by_dept = Query::new(&employees).group_by(Employee::department_r());
+    let by_dept = Query::new(&employees).group_by(Employee::department());
 
     for (dept, emps) in &by_dept {
         let dept_query = Query::new(emps);
         let count = emps.len();
-        let avg_sal = dept_query.avg(Employee::salary_r()).unwrap_or(0.0);
+        let avg_sal = dept_query.avg(Employee::salary()).unwrap_or(0.0);
         println!("  {}: {} employees, avg salary ${:.2}", dept, count, avg_sal);
     }
 
     println!("\nRust Query Builder:");
-    println!("let by_dept = Query::new(&employees).group_by(Employee::department_r());");
+    println!("let by_dept = Query::new(&employees).group_by(Employee::department());");
     println!("for (dept, emps) in &by_dept {{");
     println!("    let dept_query = Query::new(emps);");
-    println!("    dept_query.avg(Employee::salary_r())");
+    println!("    dept_query.avg(Employee::salary())");
     println!("}}");
 
     // ============================================================================
@@ -233,8 +233,8 @@ fn main() {
     );
 
     let sales_sorted = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Sales")
-        .order_by_float_desc(Employee::salary_r());
+        .where_(Employee::department(), |dept| dept == "Sales")
+        .order_by_float_desc(Employee::salary());
 
     for emp in &sales_sorted {
         println!("  {}: ${:.2}", emp.name, emp.salary);
@@ -242,8 +242,8 @@ fn main() {
 
     println!("\nRust Query Builder:");
     println!("Query::new(&employees)");
-    println!("    .where_(Employee::department_r(), |dept| dept == \"Sales\")");
-    println!("    .order_by_float_desc(Employee::salary_r())");
+    println!("    .where_(Employee::department(), |dept| dept == \"Sales\")");
+    println!("    .order_by_float_desc(Employee::salary())");
 
     // ============================================================================
     // EXAMPLE 7: Multiple WHERE conditions (AND)
@@ -256,8 +256,8 @@ fn main() {
     );
 
     let filter_query = Query::new(&employees)
-        .where_(Employee::salary_r(), |&salary| salary > 70000.0)
-        .where_(Employee::age_r(), |&age| age < 35);
+        .where_(Employee::salary(), |&salary| salary > 70000.0)
+        .where_(Employee::age(), |&age| age < 35);
     let filtered = filter_query.all();
 
     for emp in &filtered {
@@ -266,8 +266,8 @@ fn main() {
 
     println!("\nRust Query Builder:");
     println!("Query::new(&employees)");
-    println!("    .where_(Employee::salary_r(), |&salary| salary > 70000.0)");
-    println!("    .where_(Employee::age_r(), |&age| age < 35)");
+    println!("    .where_(Employee::salary(), |&salary| salary > 70000.0)");
+    println!("    .where_(Employee::age(), |&age| age < 35)");
     println!("    .all()");
     println!("✓ Found {} employees", filtered.len());
 
@@ -282,7 +282,7 @@ fn main() {
     );
 
     let top_earners = Query::new(&employees)
-        .order_by_float_desc(Employee::salary_r());
+        .order_by_float_desc(Employee::salary());
 
     for (i, emp) in top_earners.iter().take(3).enumerate() {
         println!("  {}. {}: ${:.2}", i + 1, emp.name, emp.salary);
@@ -290,7 +290,7 @@ fn main() {
 
     println!("\nRust Query Builder:");
     println!("Query::new(&employees)");
-    println!("    .order_by_float_desc(Employee::salary_r())");
+    println!("    .order_by_float_desc(Employee::salary())");
     println!("    .into_iter().take(3)");
 
     // ============================================================================
@@ -305,7 +305,7 @@ fn main() {
     );
 
     let page_2 = Query::new(&employees)
-        .order_by(Employee::name_r())
+        .order_by(Employee::name())
         .into_iter()
         .skip(3)
         .take(3)
@@ -317,7 +317,7 @@ fn main() {
 
     println!("\nRust Query Builder:");
     println!("Query::new(&employees)");
-    println!("    .order_by(Employee::name_r())");
+    println!("    .order_by(Employee::name())");
     println!("    .into_iter().skip(3).take(3)");
 
     // ============================================================================
@@ -332,8 +332,8 @@ fn main() {
     );
 
     let emp_dept = JoinQuery::new(&employees, &departments).inner_join(
-        Employee::department_r(),
-        Department::name_r(),
+        Employee::department(),
+        Department::name(),
         |emp, dept| (emp.name.clone(), dept.name.clone(), dept.budget),
     );
 
@@ -344,8 +344,8 @@ fn main() {
 
     println!("\nRust Query Builder:");
     println!("JoinQuery::new(&employees, &departments).inner_join(");
-    println!("    Employee::department_r(),");
-    println!("    Department::name_r(),");
+    println!("    Employee::department(),");
+    println!("    Department::name(),");
     println!("    |emp, dept| (emp.name.clone(), dept.name.clone(), dept.budget)");
     println!(")");
     println!("✓ Found {} matches", emp_dept.len());
@@ -362,12 +362,12 @@ fn main() {
         "Cities with multiple employees"
     );
 
-    let by_city = Query::new(&employees).group_by(Employee::city_r());
+    let by_city = Query::new(&employees).group_by(Employee::city());
     let mut city_stats: Vec<_> = by_city
         .iter()
         .filter(|(_, emps)| emps.len() > 1) // HAVING equivalent
         .map(|(city, emps)| {
-            let avg_sal = Query::new(emps).avg(Employee::salary_r()).unwrap_or(0.0);
+            let avg_sal = Query::new(emps).avg(Employee::salary()).unwrap_or(0.0);
             (city.clone(), emps.len(), avg_sal)
         })
         .collect();
@@ -379,11 +379,11 @@ fn main() {
     }
 
     println!("\nRust Query Builder:");
-    println!("let by_city = Query::new(&employees).group_by(Employee::city_r());");
+    println!("let by_city = Query::new(&employees).group_by(Employee::city());");
     println!("by_city.iter()");
     println!("    .filter(|(_, emps)| emps.len() > 1)  // HAVING equivalent");
     println!("    .map(|(city, emps)| {{");
-    println!("        let avg = Query::new(emps).avg(Employee::salary_r());");
+    println!("        let avg = Query::new(emps).avg(Employee::salary());");
     println!("        (city, emps.len(), avg)");
     println!("    }})");
 
@@ -402,10 +402,10 @@ fn main() {
     );
 
     let complex_query = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Engineering" || dept == "Sales")
-        .where_(Employee::salary_r(), |&sal| sal >= 80000.0 && sal <= 100000.0)
-        .where_(Employee::age_r(), |&age| age >= 30)
-        .order_by_float_desc(Employee::salary_r());
+        .where_(Employee::department(), |dept| dept == "Engineering" || dept == "Sales")
+        .where_(Employee::salary(), |&sal| sal >= 80000.0 && sal <= 100000.0)
+        .where_(Employee::age(), |&age| age >= 30)
+        .order_by_float_desc(Employee::salary());
 
     for emp in &complex_query {
         println!("  {}: Age {}, {} dept, ${:.2}", emp.name, emp.age, emp.department, emp.salary);
@@ -413,10 +413,10 @@ fn main() {
 
     println!("\nRust Query Builder:");
     println!("Query::new(&employees)");
-    println!("    .where_(Employee::department_r(), |dept| dept == \"Engineering\" || dept == \"Sales\")");
-    println!("    .where_(Employee::salary_r(), |&sal| sal >= 80000.0 && sal <= 100000.0)");
-    println!("    .where_(Employee::age_r(), |&age| age >= 30)");
-    println!("    .order_by_float_desc(Employee::salary_r())");
+    println!("    .where_(Employee::department(), |dept| dept == \"Engineering\" || dept == \"Sales\")");
+    println!("    .where_(Employee::salary(), |&sal| sal >= 80000.0 && sal <= 100000.0)");
+    println!("    .where_(Employee::age(), |&age| age >= 30)");
+    println!("    .order_by_float_desc(Employee::salary())");
     println!("✓ Found {} employees", complex_query.len());
 
     // ============================================================================
@@ -431,8 +431,8 @@ fn main() {
     );
 
     let proj_dept = JoinQuery::new(&projects, &departments).inner_join(
-        Project::department_id_r(),
-        Department::id_r(),
+        Project::department_id(),
+        Department::id(),
         |proj, dept| {
             (proj.name.clone(), dept.name.clone(), dept.location.clone(), proj.budget)
         },
@@ -444,8 +444,8 @@ fn main() {
 
     println!("\nRust Query Builder:");
     println!("JoinQuery::new(&projects, &departments).inner_join(");
-    println!("    Project::department_id_r(),");
-    println!("    Department::id_r(),");
+    println!("    Project::department_id(),");
+    println!("    Department::id(),");
     println!("    |proj, dept| (proj.name, dept.name, dept.location, proj.budget)");
     println!(")");
 
@@ -460,11 +460,11 @@ fn main() {
     );
 
     let avg_salary = Query::new(&employees)
-        .avg(Employee::salary_r())
+        .avg(Employee::salary())
         .unwrap_or(0.0);
 
     let above_avg_query = Query::new(&employees)
-        .where_(Employee::salary_r(), move |&sal| sal > avg_salary);
+        .where_(Employee::salary(), move |&sal| sal > avg_salary);
     let above_avg = above_avg_query.all();
 
     println!("  Average salary: ${:.2}", avg_salary);
@@ -474,9 +474,9 @@ fn main() {
     }
 
     println!("\nRust Query Builder:");
-    println!("let avg = Query::new(&employees).avg(Employee::salary_r()).unwrap_or(0.0);");
+    println!("let avg = Query::new(&employees).avg(Employee::salary()).unwrap_or(0.0);");
     println!("Query::new(&employees)");
-    println!("    .where_(Employee::salary_r(), |&sal| sal > avg)");
+    println!("    .where_(Employee::salary(), |&sal| sal > avg)");
     println!("    .all()");
     println!("✓ Found {} employees above average", above_avg.len());
 
@@ -498,8 +498,8 @@ fn main() {
 
     // Join departments with projects
     let dept_projects = JoinQuery::new(&departments, &projects).left_join(
-        Department::id_r(),
-        Project::department_id_r(),
+        Department::id(),
+        Project::department_id(),
         |dept, proj| (dept.clone(), proj.map(|p| p.clone())),
     );
 
@@ -523,7 +523,7 @@ fn main() {
 
     println!("\nRust Query Builder:");
     println!("let dept_projects = JoinQuery::new(&departments, &projects)");
-    println!("    .left_join(Department::id_r(), Project::department_id_r(), ...)");
+    println!("    .left_join(Department::id(), Project::department_id(), ...)");
     println!("// Then aggregate using HashMap");
 
     // ============================================================================

@@ -11,11 +11,11 @@
 //! cargo run --example lazy_aggregators_demo --release
 
 use rust_queries_builder::{LockQueryable, LockLazyQueryable};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -25,7 +25,7 @@ struct Product {
     rating: f64,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Order {
     id: u32,
     product_id: u32,
@@ -132,21 +132,21 @@ fn main() {
     // Sum of all prices
     let total_value: f64 = products
         .lock_lazy_query()
-        .sum(Product::price_r());
+        .sum(Product::price());
     println!("  Total inventory value: ${:.2}", total_value);
     
     // Sum of electronics prices only
     let electronics_value: f64 = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .sum(Product::price_r());
+        .where_(Product::category(), |c| c == "Electronics")
+        .sum(Product::price());
     println!("  Electronics value: ${:.2}", electronics_value);
     
     // Sum of stock quantities
     let total_stock: u32 = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s > 0)
-        .sum(Product::stock_r());
+        .where_(Product::stock(), |&s| s > 0)
+        .sum(Product::stock());
     println!("  Total stock units: {}", total_stock);
     println!("  SQL: SELECT SUM(stock) FROM products WHERE stock > 0;\n");
     
@@ -155,21 +155,21 @@ fn main() {
     // Average price of all products
     let avg_price = products
         .lock_lazy_query()
-        .avg(Product::price_r());
+        .avg(Product::price());
     println!("  Average product price: ${:.2}", avg_price.unwrap_or(0.0));
     
     // Average rating for electronics
     let avg_electronics_rating = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .avg(Product::rating_r());
+        .where_(Product::category(), |c| c == "Electronics")
+        .avg(Product::rating());
     println!("  Average electronics rating: {:.2}", avg_electronics_rating.unwrap_or(0.0));
     
     // Average price of in-stock items
     let avg_in_stock = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s > 0)
-        .avg(Product::price_r());
+        .where_(Product::stock(), |&s| s > 0)
+        .avg(Product::price());
     println!("  Average price (in stock): ${:.2}", avg_in_stock.unwrap_or(0.0));
     println!("  SQL: SELECT AVG(price) FROM products WHERE stock > 0;\n");
     
@@ -178,23 +178,23 @@ fn main() {
     // Minimum and maximum prices
     let min_price = products
         .lock_lazy_query()
-        .min_float(Product::price_r());
+        .min_float(Product::price());
     let max_price = products
         .lock_lazy_query()
-        .max_float(Product::price_r());
+        .max_float(Product::price());
     println!("  Price range: ${:.2} - ${:.2}", min_price.unwrap_or(0.0), max_price.unwrap_or(0.0));
     
     // Minimum stock level
     let min_stock = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s > 0)
-        .min(Product::stock_r());
+        .where_(Product::stock(), |&s| s > 0)
+        .min(Product::stock());
     println!("  Minimum stock level (>0): {:?} units", min_stock);
     
     // Highest rated product
     let highest_rating = products
         .lock_lazy_query()
-        .max_float(Product::rating_r());
+        .max_float(Product::rating());
     println!("  Highest rating: {:.1}", highest_rating.unwrap_or(0.0));
     println!("  SQL: SELECT MIN(stock), MAX(rating) FROM products;\n");
     
@@ -210,14 +210,14 @@ fn main() {
     // Check if expensive items exist
     let has_expensive = products
         .lock_lazy_query()
-        .where_(Product::price_r(), |&p| p > 1000.0)
+        .where_(Product::price(), |&p| p > 1000.0)
         .exists();
     println!("  Expensive items (>$1000): {}", if has_expensive { "Yes ✓" } else { "No ✗" });
     
     // Check if out-of-stock items exist
     let has_out_of_stock = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s == 0)
+        .where_(Product::stock(), |&s| s == 0)
         .exists();
     println!("  Out of stock items: {}", if has_out_of_stock { "Yes ✓" } else { "No ✗" });
     println!("  SQL: SELECT EXISTS(SELECT 1 FROM products WHERE stock = 0);\n");
@@ -251,14 +251,14 @@ fn main() {
     // Get all unique categories
     let categories: Vec<String> = products
         .lock_lazy_query()
-        .distinct(Product::category_r());
+        .distinct(Product::category());
     println!("  Unique categories: {:?}", categories);
     
     // Get unique categories for in-stock items only
     let in_stock_categories: Vec<String> = products
         .lock_lazy_query()
-        .where_(Product::stock_r(), |&s| s > 0)
-        .distinct(Product::category_r());
+        .where_(Product::stock(), |&s| s > 0)
+        .distinct(Product::category());
     println!("  Categories (in stock): {:?}", in_stock_categories);
     println!("  SQL: SELECT DISTINCT category FROM products WHERE stock > 0;\n");
     
@@ -301,15 +301,15 @@ fn main() {
     // Check if all electronics have rating > 4.0
     let all_well_rated = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .all_match(Product::rating_r(), |&r| r > 4.0);
+        .where_(Product::category(), |c| c == "Electronics")
+        .all_match(Product::rating(), |&r| r > 4.0);
     println!("  All electronics well-rated (>4.0): {}", 
              if all_well_rated { "Yes ✓" } else { "No ✗" });
     
     // Check if all products are in stock
     let all_in_stock = products
         .lock_lazy_query()
-        .all_match(Product::stock_r(), |&s| s > 0);
+        .all_match(Product::stock(), |&s| s > 0);
     println!("  All products in stock: {}", 
              if all_in_stock { "Yes ✓" } else { "No ✗" });
     println!();
@@ -319,8 +319,8 @@ fn main() {
     // Find first expensive electronics item
     let expensive_electronics = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .find(Product::price_r(), |&p| p > 500.0);
+        .where_(Product::category(), |c| c == "Electronics")
+        .find(Product::price(), |&p| p > 500.0);
     if let Some(p) = expensive_electronics {
         println!("  First expensive electronics: {} - ${:.2}", p.name, p.price);
     }
@@ -328,8 +328,8 @@ fn main() {
     // Find first highly-rated furniture
     let good_furniture = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Furniture")
-        .find(Product::rating_r(), |&r| r > 4.5);
+        .where_(Product::category(), |c| c == "Furniture")
+        .find(Product::rating(), |&r| r > 4.5);
     if let Some(p) = good_furniture {
         println!("  First highly-rated furniture: {} - {:.1}★", p.name, p.rating);
     }
@@ -340,20 +340,20 @@ fn main() {
     // Count expensive electronics
     let expensive_count = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .count_where(Product::price_r(), |&p| p > 100.0);
+        .where_(Product::category(), |c| c == "Electronics")
+        .count_where(Product::price(), |&p| p > 100.0);
     println!("  Expensive electronics (>$100): {}", expensive_count);
     
     // Count well-stocked items
     let well_stocked = products
         .lock_lazy_query()
-        .count_where(Product::stock_r(), |&s| s > 20);
+        .count_where(Product::stock(), |&s| s > 20);
     println!("  Well-stocked items (>20 units): {}", well_stocked);
     
     // Count highly-rated products
     let highly_rated = products
         .lock_lazy_query()
-        .count_where(Product::rating_r(), |&r| r >= 4.5);
+        .count_where(Product::rating(), |&r| r >= 4.5);
     println!("  Highly-rated products (≥4.5★): {}", highly_rated);
     println!();
     
@@ -370,23 +370,23 @@ fn main() {
     println!("  [Query 1] High-value in-stock electronics:");
     let high_value_electronics = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .where_(Product::stock_r(), |&s| s > 0)
-        .where_(Product::price_r(), |&p| p > 100.0);
+        .where_(Product::category(), |c| c == "Electronics")
+        .where_(Product::stock(), |&s| s > 0)
+        .where_(Product::price(), |&p| p > 100.0);
     
     let hv_count = high_value_electronics.count();
     let hv_total: f64 = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .where_(Product::stock_r(), |&s| s > 0)
-        .where_(Product::price_r(), |&p| p > 100.0)
-        .sum(Product::price_r());
+        .where_(Product::category(), |c| c == "Electronics")
+        .where_(Product::stock(), |&s| s > 0)
+        .where_(Product::price(), |&p| p > 100.0)
+        .sum(Product::price());
     let hv_avg = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .where_(Product::stock_r(), |&s| s > 0)
-        .where_(Product::price_r(), |&p| p > 100.0)
-        .avg(Product::price_r());
+        .where_(Product::category(), |c| c == "Electronics")
+        .where_(Product::stock(), |&s| s > 0)
+        .where_(Product::price(), |&p| p > 100.0)
+        .avg(Product::price());
     
     println!("    Count: {}", hv_count);
     println!("    Total value: ${:.2}", hv_total);
@@ -397,19 +397,19 @@ fn main() {
     for category in &categories {
         let cat_count = products
             .lock_lazy_query()
-            .where_(Product::category_r(), |c| c == category)
+            .where_(Product::category(), |c| c == category)
             .count();
         
         let cat_avg = products
             .lock_lazy_query()
-            .where_(Product::category_r(), |c| c == category)
-            .avg(Product::price_r())
+            .where_(Product::category(), |c| c == category)
+            .avg(Product::price())
             .unwrap_or(0.0);
         
         let cat_stock: u32 = products
             .lock_lazy_query()
-            .where_(Product::category_r(), |c| c == category)
-            .sum(Product::stock_r());
+            .where_(Product::category(), |c| c == category)
+            .sum(Product::stock());
         
         println!("    {}: {} items, avg ${:.2}, {} units in stock", 
                  category, cat_count, cat_avg, cat_stock);
@@ -419,13 +419,13 @@ fn main() {
     println!("\n  [Query 3] Premium products (price > $200, rating > 4.5):");
     let premium_count = products
         .lock_lazy_query()
-        .where_(Product::price_r(), |&p| p > 200.0)
-        .count_where(Product::rating_r(), |&r| r > 4.5);
+        .where_(Product::price(), |&p| p > 200.0)
+        .count_where(Product::rating(), |&r| r > 4.5);
     
     let premium_exists = products
         .lock_lazy_query()
-        .where_(Product::price_r(), |&p| p > 200.0)
-        .find(Product::rating_r(), |&r| r > 4.5);
+        .where_(Product::price(), |&p| p > 200.0)
+        .find(Product::rating(), |&r| r > 4.5);
     
     println!("    Count: {}", premium_count);
     if let Some(p) = premium_exists {
@@ -444,7 +444,7 @@ fn main() {
     // Find products containing "Desk" in name
     let desk_products: Vec<_> = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| name.contains("Desk"))
+        .where_(Product::name(), |name| name.contains("Desk"))
         .all();
     
     println!("  Products containing 'Desk':");
@@ -458,7 +458,7 @@ fn main() {
     // Find products starting with "Wireless"
     let wireless_products: Vec<_> = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| name.starts_with("Wireless"))
+        .where_(Product::name(), |name| name.starts_with("Wireless"))
         .all();
     
     println!("  Products starting with 'Wireless':");
@@ -472,7 +472,7 @@ fn main() {
     // Find products ending with "Pro"
     let pro_products: Vec<_> = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| name.ends_with("Pro"))
+        .where_(Product::name(), |name| name.ends_with("Pro"))
         .all();
     
     println!("  Products ending with 'Pro':");
@@ -486,13 +486,13 @@ fn main() {
     // Count products with specific patterns
     let keyboard_count = products
         .lock_lazy_query()
-        .count_where(Product::name_r(), |name| 
+        .count_where(Product::name(), |name| 
             name.to_lowercase().contains("keyboard")
         );
     
     let chair_count = products
         .lock_lazy_query()
-        .count_where(Product::name_r(), |name| 
+        .count_where(Product::name(), |name| 
             name.to_lowercase().contains("chair")
         );
     
@@ -505,7 +505,7 @@ fn main() {
     // Case-insensitive search for "MOUSE" / "mouse" / "Mouse"
     let mouse_products: Vec<_> = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| 
+        .where_(Product::name(), |name| 
             name.to_lowercase().contains("mouse")
         )
         .all();
@@ -521,7 +521,7 @@ fn main() {
     // Find products matching multiple patterns
     let office_items: Vec<_> = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| {
+        .where_(Product::name(), |name| {
             name.contains("Desk") || 
             name.contains("Chair") || 
             name.contains("Lamp")
@@ -540,14 +540,14 @@ fn main() {
     // Average price of products with "Wireless" in name
     let wireless_avg = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| name.contains("Wireless"))
-        .avg(Product::price_r());
+        .where_(Product::name(), |name| name.contains("Wireless"))
+        .avg(Product::price());
     
     // Total value of products ending with "Pro"
     let pro_total: f64 = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| name.ends_with("Pro"))
-        .sum(Product::price_r());
+        .where_(Product::name(), |name| name.ends_with("Pro"))
+        .sum(Product::price());
     
     println!("  Average price of 'Wireless' products: ${:.2}", 
              wireless_avg.unwrap_or(0.0));
@@ -559,12 +559,12 @@ fn main() {
     // Check if products with pattern exist
     let has_4k = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| name.contains("4K"))
+        .where_(Product::name(), |name| name.contains("4K"))
         .exists();
     
     let has_gaming = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| 
+        .where_(Product::name(), |name| 
             name.to_lowercase().contains("gaming")
         )
         .exists();
@@ -578,8 +578,8 @@ fn main() {
     // Electronics with "USB" in name
     let usb_electronics: Vec<_> = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .where_(Product::name_r(), |name| 
+        .where_(Product::category(), |c| c == "Electronics")
+        .where_(Product::name(), |name| 
             name.to_uppercase().contains("USB")
         )
         .all();
@@ -596,15 +596,15 @@ fn main() {
     // Find products with specific word patterns and conditions
     let premium_electronic_devices: Vec<_> = products
         .lock_lazy_query()
-        .where_(Product::category_r(), |c| c == "Electronics")
-        .where_(Product::name_r(), |name| {
+        .where_(Product::category(), |c| c == "Electronics")
+        .where_(Product::name(), |name| {
             let lower = name.to_lowercase();
             (lower.contains("laptop") || 
              lower.contains("monitor") || 
              lower.contains("keyboard")) &&
             !lower.contains("wireless")
         })
-        .where_(Product::price_r(), |&p| p > 100.0)
+        .where_(Product::price(), |&p| p > 100.0)
         .all();
     
     println!("  Premium electronic devices (>$100, not wireless):");
@@ -619,11 +619,11 @@ fn main() {
     // Get unique categories of products containing specific words
     let electronics_with_patterns: Vec<String> = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| {
+        .where_(Product::name(), |name| {
             let lower = name.to_lowercase();
             lower.contains("pro") || lower.contains("4k") || lower.contains("mechanical")
         })
-        .distinct(Product::category_r());
+        .distinct(Product::category());
     
     println!("  Categories with premium/specialty items:");
     for cat in &electronics_with_patterns {
@@ -637,7 +637,7 @@ fn main() {
     // Find first product matching pattern - stops immediately!
     let first_keyboard = products
         .lock_lazy_query()
-        .find(Product::name_r(), |name| 
+        .find(Product::name(), |name| 
             name.to_lowercase().contains("keyboard")
         );
     
@@ -648,7 +648,7 @@ fn main() {
     // Check if pattern exists - stops at first match!
     let has_monitor = products
         .lock_lazy_query()
-        .where_(Product::name_r(), |name| name.contains("Monitor"))
+        .where_(Product::name(), |name| name.contains("Monitor"))
         .exists();
     
     println!("  Has monitors: {} (stopped at first match!)", 

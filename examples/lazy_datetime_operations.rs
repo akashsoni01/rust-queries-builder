@@ -10,10 +10,10 @@
 #[cfg(feature = "datetime")]
 use chrono::{DateTime, Utc, Duration, TimeZone};
 use rust_queries_builder::LazyQuery;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::time::Instant;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Event {
     id: u32,
     title: String,
@@ -69,7 +69,7 @@ fn main() {
     println!("--- Example 1: Basic Lazy DateTime Filtering ---");
     let start = Instant::now();
     let upcoming: Vec<_> = LazyQuery::new(&events)
-        .where_after(Event::scheduled_at_r(), start_of_2024)
+        .where_after(Event::scheduled_at(), start_of_2024)
         .take_lazy(10)  // Only process until we find 10 items!
         .collect();
     let duration = start.elapsed();
@@ -83,7 +83,7 @@ fn main() {
     println!("\n--- Example 2: Date Range Query with Early Termination ---");
     let start = Instant::now();
     let in_range: Vec<_> = LazyQuery::new(&events)
-        .where_between(Event::scheduled_at_r(), start_of_2024, end_of_2024)
+        .where_between(Event::scheduled_at(), start_of_2024, end_of_2024)
         .take_lazy(5)
         .collect();
     let duration = start.elapsed();
@@ -94,7 +94,7 @@ fn main() {
     println!("\n--- Example 3: Weekend Events (Lazy) ---");
     let start = Instant::now();
     let weekend_count = LazyQuery::new(&events)
-        .where_weekend(Event::scheduled_at_r())
+        .where_weekend(Event::scheduled_at())
         .count();
     let duration = start.elapsed();
     
@@ -106,10 +106,10 @@ fn main() {
     
     let start = Instant::now();
     let complex_query: Vec<_> = LazyQuery::new(&events)
-        .where_(Event::category_r(), |cat| cat == "Work")
-        .where_(Event::priority_r(), |&p| p >= 4)
-        .where_weekday(Event::scheduled_at_r())
-        .where_business_hours(Event::scheduled_at_r())
+        .where_(Event::category(), |cat| cat == "Work")
+        .where_(Event::priority(), |&p| p >= 4)
+        .where_weekday(Event::scheduled_at())
+        .where_business_hours(Event::scheduled_at())
         .take_lazy(20)  // Stop after finding 20 matches
         .collect();
     let duration = start.elapsed();
@@ -127,8 +127,8 @@ fn main() {
     println!("\n--- Example 5: Events in Specific Month (Lazy) ---");
     let start = Instant::now();
     let december: Vec<_> = LazyQuery::new(&events)
-        .where_year(Event::scheduled_at_r(), 2024)
-        .where_month(Event::scheduled_at_r(), 12)
+        .where_year(Event::scheduled_at(), 2024)
+        .where_month(Event::scheduled_at(), 12)
         .take_lazy(10)
         .collect();
     let duration = start.elapsed();
@@ -139,8 +139,8 @@ fn main() {
     println!("\n--- Example 6: First Matching Event (Early Termination) ---");
     let start = Instant::now();
     let first_weekend = LazyQuery::new(&events)
-        .where_weekend(Event::scheduled_at_r())
-        .where_(Event::priority_r(), |&p| p == 5)
+        .where_weekend(Event::scheduled_at())
+        .where_(Event::priority(), |&p| p == 5)
         .first();
     let duration = start.elapsed();
     
@@ -157,8 +157,8 @@ fn main() {
     println!("\n--- Example 7: Check if Any Weekend Work Events Exist ---");
     let start = Instant::now();
     let has_weekend_work = LazyQuery::new(&events)
-        .where_(Event::category_r(), |cat| cat == "Work")
-        .where_weekend(Event::scheduled_at_r())
+        .where_(Event::category(), |cat| cat == "Work")
+        .where_weekend(Event::scheduled_at())
         .any();
     let duration = start.elapsed();
     
@@ -168,10 +168,10 @@ fn main() {
     println!("\n--- Example 8: Chained DateTime Operations ---");
     let start = Instant::now();
     let chained: Vec<_> = LazyQuery::new(&events)
-        .where_year(Event::scheduled_at_r(), 2024)
-        .where_month(Event::scheduled_at_r(), 6) // June
-        .where_weekday(Event::scheduled_at_r())
-        .where_business_hours(Event::scheduled_at_r())
+        .where_year(Event::scheduled_at(), 2024)
+        .where_month(Event::scheduled_at(), 6) // June
+        .where_weekday(Event::scheduled_at())
+        .where_business_hours(Event::scheduled_at())
         .skip_lazy(10)  // Skip first 10
         .take_lazy(5)   // Take next 5
         .collect();
@@ -184,8 +184,8 @@ fn main() {
     println!("\n--- Example 9: Today's High Priority Events ---");
     let start = Instant::now();
     let today: Vec<_> = LazyQuery::new(&events)
-        .where_today(Event::scheduled_at_r(), now)
-        .where_(Event::priority_r(), |&p| p >= 3)
+        .where_today(Event::scheduled_at(), now)
+        .where_(Event::priority(), |&p| p >= 3)
         .collect();
     let duration = start.elapsed();
     
@@ -196,15 +196,15 @@ fn main() {
     
     let start = Instant::now();
     let weekend_work_count = LazyQuery::new(&events)
-        .where_(Event::category_r(), |cat| cat == "Work")
-        .where_weekend(Event::scheduled_at_r())
+        .where_(Event::category(), |cat| cat == "Work")
+        .where_weekend(Event::scheduled_at())
         .count();
     let duration1 = start.elapsed();
     
     let start = Instant::now();
     let weekday_personal_count = LazyQuery::new(&events)
-        .where_(Event::category_r(), |cat| cat == "Personal")
-        .where_weekday(Event::scheduled_at_r())
+        .where_(Event::category(), |cat| cat == "Personal")
+        .where_weekday(Event::scheduled_at())
         .count();
     let duration2 = start.elapsed();
     
@@ -217,8 +217,8 @@ fn main() {
     
     let start = Instant::now();
     let lazy_result: Vec<_> = LazyQuery::new(&events)
-        .where_year(Event::scheduled_at_r(), 2024)
-        .where_month(Event::scheduled_at_r(), 12)
+        .where_year(Event::scheduled_at(), 2024)
+        .where_month(Event::scheduled_at(), 12)
         .take_lazy(100)
         .collect();
     let lazy_duration = start.elapsed();
@@ -230,8 +230,8 @@ fn main() {
     println!("\n--- Example 12: Lazy Map with DateTime Filter ---");
     let start = Instant::now();
     let titles: Vec<String> = LazyQuery::new(&events)
-        .where_weekend(Event::scheduled_at_r())
-        .where_(Event::priority_r(), |&p| p >= 4)
+        .where_weekend(Event::scheduled_at())
+        .where_(Event::priority(), |&p| p >= 4)
         .map_items(|e| e.title.clone())
         .take(10)
         .collect();
@@ -246,7 +246,7 @@ fn main() {
     println!("\n--- Example 13: Lazy Fold with DateTime Filter ---");
     let start = Instant::now();
     let total_priority = LazyQuery::new(&events)
-        .where_business_hours(Event::scheduled_at_r())
+        .where_business_hours(Event::scheduled_at())
         .fold(0u32, |acc, event| acc + event.priority);
     let duration = start.elapsed();
     
@@ -257,8 +257,8 @@ fn main() {
     println!("\n--- Example 14: All Match with DateTime Filter ---");
     let start = Instant::now();
     let all_high_priority = LazyQuery::new(&events)
-        .where_weekend(Event::scheduled_at_r())
-        .where_(Event::category_r(), |cat| cat == "Work")
+        .where_weekend(Event::scheduled_at())
+        .where_(Event::category(), |cat| cat == "Work")
         .take_lazy(100)
         .all_match(|event| event.priority >= 3);
     let duration = start.elapsed();
@@ -271,16 +271,16 @@ fn main() {
     
     let total_events = events.len();
     let weekend_events = LazyQuery::new(&events)
-        .where_weekend(Event::scheduled_at_r())
+        .where_weekend(Event::scheduled_at())
         .count();
     let weekday_events = LazyQuery::new(&events)
-        .where_weekday(Event::scheduled_at_r())
+        .where_weekday(Event::scheduled_at())
         .count();
     let business_hours_events = LazyQuery::new(&events)
-        .where_business_hours(Event::scheduled_at_r())
+        .where_business_hours(Event::scheduled_at())
         .count();
     let work_events = LazyQuery::new(&events)
-        .where_(Event::category_r(), |cat| cat == "Work")
+        .where_(Event::category(), |cat| cat == "Work")
         .count();
     
     println!("\nDataset Statistics:");

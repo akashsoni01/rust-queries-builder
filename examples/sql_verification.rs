@@ -3,9 +3,9 @@
 // cargo run --example sql_verification
 
 use rust_queries_builder::Query;
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Employee {
     id: u32,
     name: String,
@@ -41,7 +41,7 @@ fn main() {
     println!("Test 1: ORDER BY DESC - Exact ordering");
     println!("SQL: SELECT * FROM employees ORDER BY salary DESC;");
     
-    let ordered = Query::new(&employees).order_by_float_desc(Employee::salary_r());
+    let ordered = Query::new(&employees).order_by_float_desc(Employee::salary());
     let expected_order = vec![105000.0, 95000.0, 87000.0, 82000.0, 75000.0, 71000.0];
     let actual_order: Vec<f64> = ordered.iter().map(|e| e.salary).collect();
     
@@ -56,7 +56,7 @@ fn main() {
     println!("\nTest 2: ORDER BY ASC - Exact ordering");
     println!("SQL: SELECT * FROM employees ORDER BY salary ASC;");
     
-    let ordered_asc = Query::new(&employees).order_by_float(Employee::salary_r());
+    let ordered_asc = Query::new(&employees).order_by_float(Employee::salary());
     let expected_asc = vec![71000.0, 75000.0, 82000.0, 87000.0, 95000.0, 105000.0];
     let actual_asc: Vec<f64> = ordered_asc.iter().map(|e| e.salary).collect();
     
@@ -71,7 +71,7 @@ fn main() {
     println!("\nTest 3: ORDER BY name (alphabetical)");
     println!("SQL: SELECT name FROM employees ORDER BY name;");
     
-    let ordered_names = Query::new(&employees).order_by(Employee::name_r());
+    let ordered_names = Query::new(&employees).order_by(Employee::name());
     let expected_names = vec!["Alice Cooper", "Alice Johnson", "Bob Smith", "Carol White", "David Brown", "Eve Davis"];
     let actual_names: Vec<&str> = ordered_names.iter().map(|e| e.name.as_str()).collect();
     
@@ -87,7 +87,7 @@ fn main() {
     println!("SQL: SELECT * FROM employees WHERE name LIKE 'Alice%';");
     
     let like_alice_query = Query::new(&employees)
-        .where_(Employee::name_r(), |name| name.starts_with("Alice"));
+        .where_(Employee::name(), |name| name.starts_with("Alice"));
     let like_alice = like_alice_query.all();
     
     let test4_pass = like_alice.len() == 2 
@@ -104,7 +104,7 @@ fn main() {
     println!("SQL: SELECT * FROM employees WHERE name LIKE '%son';");
     
     let like_son_query = Query::new(&employees)
-        .where_(Employee::name_r(), |name| name.ends_with("son"));
+        .where_(Employee::name(), |name| name.ends_with("son"));
     let like_son = like_son_query.all();
     
     let test5_pass = like_son.len() == 1 && like_son[0].name == "Alice Johnson";
@@ -120,7 +120,7 @@ fn main() {
     println!("SQL: SELECT * FROM employees WHERE name LIKE '%mit%';");
     
     let like_mit_query = Query::new(&employees)
-        .where_(Employee::name_r(), |name| name.contains("mit"));
+        .where_(Employee::name(), |name| name.contains("mit"));
     let like_mit = like_mit_query.all();
     
     let test6_pass = like_mit.len() == 1 && like_mit[0].name == "Bob Smith";
@@ -136,7 +136,7 @@ fn main() {
     println!("SQL: SELECT * FROM employees WHERE department IN ('Engineering', 'Sales');");
     
     let in_depts_query = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Engineering" || dept == "Sales");
+        .where_(Employee::department(), |dept| dept == "Engineering" || dept == "Sales");
     let in_depts = in_depts_query.all();
     
     let test7_pass = in_depts.len() == 5 // 3 Engineering + 2 Sales
@@ -149,7 +149,7 @@ fn main() {
     println!("SQL: SELECT * FROM employees WHERE salary BETWEEN 75000 AND 90000;");
     
     let between_query = Query::new(&employees)
-        .where_(Employee::salary_r(), |&sal| sal >= 75000.0 && sal <= 90000.0);
+        .where_(Employee::salary(), |&sal| sal >= 75000.0 && sal <= 90000.0);
     let between = between_query.all();
     
     let test8_pass = between.len() == 3;
@@ -161,7 +161,7 @@ fn main() {
     println!("SQL: SELECT COUNT(*) FROM employees WHERE department = 'Engineering';");
     
     let count_eng = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Engineering")
+        .where_(Employee::department(), |dept| dept == "Engineering")
         .count();
     
     let test9_pass = count_eng == 3;
@@ -173,8 +173,8 @@ fn main() {
     println!("SQL: SELECT AVG(salary) FROM employees WHERE department = 'Engineering';");
     
     let avg_sal = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Engineering")
-        .avg(Employee::salary_r())
+        .where_(Employee::department(), |dept| dept == "Engineering")
+        .avg(Employee::salary())
         .unwrap_or(0.0);
     
     let expected_avg = (95000.0 + 87000.0 + 105000.0) / 3.0;
@@ -186,8 +186,8 @@ fn main() {
     println!("\nTest 11: MIN and MAX aggregations");
     println!("SQL: SELECT MIN(salary), MAX(salary) FROM employees;");
     
-    let min_sal = Query::new(&employees).min_float(Employee::salary_r()).unwrap_or(0.0);
-    let max_sal = Query::new(&employees).max_float(Employee::salary_r()).unwrap_or(0.0);
+    let min_sal = Query::new(&employees).min_float(Employee::salary()).unwrap_or(0.0);
+    let max_sal = Query::new(&employees).max_float(Employee::salary()).unwrap_or(0.0);
     
     let test11_pass = min_sal == 71000.0 && max_sal == 105000.0;
     print_test("MIN and MAX produce correct results", test11_pass);
@@ -198,8 +198,8 @@ fn main() {
     println!("SQL: SELECT * FROM employees WHERE (department = 'Engineering' OR department = 'Sales') AND salary > 80000;");
     
     let complex_query = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "Engineering" || dept == "Sales")
-        .where_(Employee::salary_r(), |&sal| sal > 80000.0);
+        .where_(Employee::department(), |dept| dept == "Engineering" || dept == "Sales")
+        .where_(Employee::salary(), |&sal| sal > 80000.0);
     let complex = complex_query.all();
     
     let test12_pass = complex.len() == 4; // Alice J ($95k), Bob ($87k), David ($82k), Alice C ($105k)
@@ -211,7 +211,7 @@ fn main() {
     println!("SQL: SELECT * FROM employees WHERE department = 'engineering'; -- should find 0");
     
     let case_sensitive = Query::new(&employees)
-        .where_(Employee::department_r(), |dept| dept == "engineering") // lowercase
+        .where_(Employee::department(), |dept| dept == "engineering") // lowercase
         .count();
     
     let test13_pass = case_sensitive == 0;
@@ -223,7 +223,7 @@ fn main() {
     println!("SQL: SELECT * FROM employees WHERE LOWER(name) LIKE '%alice%';");
     
     let ilike_query = Query::new(&employees)
-        .where_(Employee::name_r(), |name| name.to_lowercase().contains("alice"));
+        .where_(Employee::name(), |name| name.to_lowercase().contains("alice"));
     let ilike = ilike_query.all();
     
     let test14_pass = ilike.len() == 2;
@@ -235,7 +235,7 @@ fn main() {
     println!("SQL: SELECT * FROM employees ORDER BY salary DESC LIMIT 3;");
     
     let limited = Query::new(&employees)
-        .order_by_float_desc(Employee::salary_r())
+        .order_by_float_desc(Employee::salary())
         .into_iter()
         .take(3)
         .collect::<Vec<_>>();
@@ -252,7 +252,7 @@ fn main() {
     println!("\nTest 16: GROUP BY");
     println!("SQL: SELECT department, COUNT(*) FROM employees GROUP BY department;");
     
-    let grouped = Query::new(&employees).group_by(Employee::department_r());
+    let grouped = Query::new(&employees).group_by(Employee::department());
     let eng_count = grouped.get("Engineering").map(|v| v.len()).unwrap_or(0);
     let sales_count = grouped.get("Sales").map(|v| v.len()).unwrap_or(0);
     let marketing_count = grouped.get("Marketing").map(|v| v.len()).unwrap_or(0);
@@ -266,7 +266,7 @@ fn main() {
     println!("SQL: SELECT * FROM employees WHERE email LIKE '%@example.com';");
     
     let example_emails = Query::new(&employees)
-        .where_(Employee::email_r(), |email| email.ends_with("@example.com"))
+        .where_(Employee::email(), |email| email.ends_with("@example.com"))
         .count();
     
     let test17_pass = example_emails == 6; // All employees have @example.com emails

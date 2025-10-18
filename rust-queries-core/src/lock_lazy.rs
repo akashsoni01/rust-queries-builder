@@ -62,23 +62,23 @@ where
     /// // Select only product names (not full objects)
     /// let names: Vec<String> = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::price_r(), |&p| p > 100.0)
-    ///     .select_lazy(Product::name_r())
+    ///     .where_(Product::price(), |&p| p > 100.0)
+    ///     .select_lazy(Product::name())
     ///     .collect();
     /// 
     /// // Select only IDs  
     /// let ids: Vec<u32> = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .select_lazy(Product::id_r())
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .select_lazy(Product::id())
     ///     .take(10)
     ///     .collect();
     /// 
     /// // Select prices and compute sum
     /// let total: f64 = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::category_r(), |c| c == "Electronics")
-    ///     .select_lazy(Product::price_r())
+    ///     .where_(Product::category(), |c| c == "Electronics")
+    ///     .select_lazy(Product::price())
     ///     .sum();
     /// ```
     /// 
@@ -149,7 +149,7 @@ where
     /// ```ignore
     /// let all_items: Vec<Product> = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::price_r(), |&p| p > 100.0)
+    ///     .where_(Product::price(), |&p| p > 100.0)
     ///     .all();
     /// ```
     pub fn all(self) -> Vec<T>
@@ -173,14 +173,14 @@ where
     /// // Sum all prices
     /// let total_value: f64 = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .sum(Product::price_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .sum(Product::price());
     /// 
     /// // Sum stock quantities
     /// let total_stock: u32 = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::category_r(), |c| c == "Electronics")
-    ///     .sum(Product::stock_r());
+    ///     .where_(Product::category(), |c| c == "Electronics")
+    ///     .sum(Product::stock());
     /// ```
     pub fn sum<F>(self, path: KeyPaths<T, F>) -> F
     where
@@ -202,8 +202,8 @@ where
     /// ```ignore
     /// let avg_price = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .avg(Product::price_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .avg(Product::price());
     /// 
     /// match avg_price {
     ///     Some(avg) => println!("Average price: ${:.2}", avg),
@@ -233,8 +233,8 @@ where
     /// ```ignore
     /// let min_stock = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .min(Product::stock_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .min(Product::stock());
     /// 
     /// println!("Minimum stock level: {:?}", min_stock);
     /// ```
@@ -258,8 +258,8 @@ where
     /// ```ignore
     /// let max_price = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::category_r(), |c| c == "Electronics")
-    ///     .max(Product::price_r());
+    ///     .where_(Product::category(), |c| c == "Electronics")
+    ///     .max(Product::price());
     /// 
     /// println!("Most expensive: ${:.2}", max_price.unwrap_or(0.0));
     /// ```
@@ -283,8 +283,8 @@ where
     /// ```ignore
     /// let cheapest = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .min_float(Product::price_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .min_float(Product::price());
     /// ```
     pub fn min_float(self, path: KeyPaths<T, f64>) -> Option<f64> {
         self.iter
@@ -303,8 +303,8 @@ where
     /// ```ignore
     /// let most_expensive = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .max_float(Product::price_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .max_float(Product::price());
     /// ```
     pub fn max_float(self, path: KeyPaths<T, f64>) -> Option<f64> {
         self.iter
@@ -328,7 +328,7 @@ where
     /// ```ignore
     /// let has_expensive = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::price_r(), |&p| p > 1000.0)
+    ///     .where_(Product::price(), |&p| p > 1000.0)
     ///     .exists();
     /// 
     /// if has_expensive {
@@ -350,7 +350,7 @@ where
     /// ```ignore
     /// let top_5: Vec<Product> = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 10)
+    ///     .where_(Product::stock(), |&s| s > 10)
     ///     .limit(5)
     ///     .collect();
     /// 
@@ -394,8 +394,8 @@ where
     /// ```ignore
     /// let categories: Vec<String> = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .distinct(Product::category_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .distinct(Product::category());
     /// 
     /// println!("Available categories: {:?}", categories);
     /// 
@@ -426,7 +426,7 @@ where
     /// ```ignore
     /// let last_product = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
+    ///     .where_(Product::stock(), |&s| s > 0)
     ///     .last();
     /// ```
     pub fn last(self) -> Option<T>
@@ -447,7 +447,7 @@ where
     /// ```ignore
     /// let third_item = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
+    ///     .where_(Product::stock(), |&s| s > 0)
     ///     .nth(2);  // 0-indexed, so this is the 3rd item
     /// ```
     pub fn nth(mut self, n: usize) -> Option<T>
@@ -469,8 +469,8 @@ where
     /// ```ignore
     /// let all_in_stock = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::category_r(), |c| c == "Electronics")
-    ///     .all_match(Product::stock_r(), |&s| s > 0);
+    ///     .where_(Product::category(), |c| c == "Electronics")
+    ///     .all_match(Product::stock(), |&s| s > 0);
     /// 
     /// if all_in_stock {
     ///     println!("All electronics are in stock!");
@@ -498,8 +498,8 @@ where
     /// ```ignore
     /// let expensive_laptop = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::category_r(), |c| c == "Electronics")
-    ///     .find(Product::price_r(), |&p| p > 500.0);
+    ///     .where_(Product::category(), |c| c == "Electronics")
+    ///     .find(Product::price(), |&p| p > 500.0);
     /// ```
     pub fn find<F, P>(mut self, path: KeyPaths<T, F>, predicate: P) -> Option<T>
     where
@@ -528,8 +528,8 @@ where
     /// ```ignore
     /// let expensive_count = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::category_r(), |c| c == "Electronics")
-    ///     .count_where(Product::price_r(), |&p| p > 500.0);
+    ///     .where_(Product::category(), |c| c == "Electronics")
+    ///     .count_where(Product::price(), |&p| p > 500.0);
     /// ```
     pub fn count_where<F, P>(self, path: KeyPaths<T, F>, predicate: P) -> usize
     where
@@ -560,7 +560,7 @@ where
     /// ```ignore
     /// let recent = events
     ///     .lock_lazy_query()
-    ///     .where_after_systemtime(Event::timestamp_r(), cutoff_time);
+    ///     .where_after_systemtime(Event::timestamp(), cutoff_time);
     /// ```
     pub fn where_after_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
         self.where_(path, move |time| time > &reference)
@@ -578,7 +578,7 @@ where
     /// ```ignore
     /// let old = events
     ///     .lock_lazy_query()
-    ///     .where_before_systemtime(Event::timestamp_r(), cutoff_time);
+    ///     .where_before_systemtime(Event::timestamp(), cutoff_time);
     /// ```
     pub fn where_before_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
         self.where_(path, move |time| time < &reference)
@@ -597,7 +597,7 @@ where
     /// ```ignore
     /// let range = events
     ///     .lock_lazy_query()
-    ///     .where_between_systemtime(Event::timestamp_r(), start, end);
+    ///     .where_between_systemtime(Event::timestamp(), start, end);
     /// ```
     pub fn where_between_systemtime(
         self,
@@ -626,8 +626,8 @@ where
     /// ```ignore
     /// let sorted = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .order_by(Product::name_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .order_by(Product::name());
     /// ```
     pub fn order_by<F>(self, path: KeyPaths<T, F>) -> Vec<T>
     where
@@ -656,8 +656,8 @@ where
     /// ```ignore
     /// let sorted = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .order_by_desc(Product::stock_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .order_by_desc(Product::stock());
     /// ```
     pub fn order_by_desc<F>(self, path: KeyPaths<T, F>) -> Vec<T>
     where
@@ -690,8 +690,8 @@ where
     /// ```ignore
     /// let sorted = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .order_by_float(Product::price_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .order_by_float(Product::price());
     /// ```
     pub fn order_by_float(self, path: KeyPaths<T, f64>) -> Vec<T>
     where
@@ -723,8 +723,8 @@ where
     /// ```ignore
     /// let sorted = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .order_by_float_desc(Product::rating_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .order_by_float_desc(Product::rating());
     /// ```
     pub fn order_by_float_desc(self, path: KeyPaths<T, f64>) -> Vec<T>
     where
@@ -760,8 +760,8 @@ where
     /// ```ignore
     /// let by_category = products
     ///     .lock_lazy_query()
-    ///     .where_(Product::stock_r(), |&s| s > 0)
-    ///     .group_by(Product::category_r());
+    ///     .where_(Product::stock(), |&s| s > 0)
+    ///     .group_by(Product::category());
     /// 
     /// for (category, products) in by_category {
     ///     println!("{}: {} products", category, products.len());
@@ -810,7 +810,7 @@ where
     /// ```ignore
     /// let recent = events
     ///     .lock_lazy_query()
-    ///     .where_after(Event::timestamp_r(), cutoff_time);
+    ///     .where_after(Event::timestamp(), cutoff_time);
     /// ```
     pub fn where_after<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
     where
@@ -832,7 +832,7 @@ where
     /// ```ignore
     /// let old = events
     ///     .lock_lazy_query()
-    ///     .where_before(Event::timestamp_r(), cutoff_time);
+    ///     .where_before(Event::timestamp(), cutoff_time);
     /// ```
     pub fn where_before<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
     where
@@ -855,7 +855,7 @@ where
     /// ```ignore
     /// let range = events
     ///     .lock_lazy_query()
-    ///     .where_between(Event::timestamp_r(), start, end);
+    ///     .where_between(Event::timestamp(), start, end);
     /// ```
     pub fn where_between<Tz>(
         self,
@@ -882,7 +882,7 @@ where
     /// ```ignore
     /// let today = events
     ///     .lock_lazy_query()
-    ///     .where_today(Event::timestamp_r(), Utc::now());
+    ///     .where_today(Event::timestamp(), Utc::now());
     /// ```
     pub fn where_today<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, now: DateTime<Tz>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
     where
@@ -906,7 +906,7 @@ where
     /// ```ignore
     /// let this_year = events
     ///     .lock_lazy_query()
-    ///     .where_year(Event::timestamp_r(), 2024);
+    ///     .where_year(Event::timestamp(), 2024);
     /// ```
     pub fn where_year<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, year: i32) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
     where
@@ -929,7 +929,7 @@ where
     /// ```ignore
     /// let december = events
     ///     .lock_lazy_query()
-    ///     .where_month(Event::timestamp_r(), 12);
+    ///     .where_month(Event::timestamp(), 12);
     /// ```
     pub fn where_month<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, month: u32) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
     where
@@ -952,7 +952,7 @@ where
     /// ```ignore
     /// let first = events
     ///     .lock_lazy_query()
-    ///     .where_day(Event::timestamp_r(), 1);
+    ///     .where_day(Event::timestamp(), 1);
     /// ```
     pub fn where_day<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, day: u32) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
     where
@@ -974,7 +974,7 @@ where
     /// ```ignore
     /// let weekend_events = events
     ///     .lock_lazy_query()
-    ///     .where_weekend(Event::timestamp_r());
+    ///     .where_weekend(Event::timestamp());
     /// ```
     pub fn where_weekend<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
     where
@@ -999,7 +999,7 @@ where
     /// ```ignore
     /// let weekday_events = events
     ///     .lock_lazy_query()
-    ///     .where_weekday(Event::timestamp_r());
+    ///     .where_weekday(Event::timestamp());
     /// ```
     pub fn where_weekday<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
     where
@@ -1024,7 +1024,7 @@ where
     /// ```ignore
     /// let business_hours = events
     ///     .lock_lazy_query()
-    ///     .where_business_hours(Event::timestamp_r());
+    ///     .where_business_hours(Event::timestamp());
     /// ```
     pub fn where_business_hours<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a>
     where

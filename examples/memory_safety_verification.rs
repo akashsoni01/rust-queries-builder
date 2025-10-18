@@ -4,14 +4,14 @@
 // cargo run --example memory_safety_verification
 
 use rust_queries_builder::{Query, JoinQuery};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::sync::Mutex;
 
 // Track drops to verify memory is freed
 static DROP_COUNTER: Mutex<usize> = Mutex::new(0);
 static ALLOC_COUNTER: Mutex<usize> = Mutex::new(0);
 
-#[derive(Keypaths)]
+#[derive(Keypath)]
 struct Employee {
     id: u32,
     name: String,
@@ -125,7 +125,7 @@ fn main() {
 
         {
             let query = Query::new(&employees)
-                .where_(Employee::department_r(), |dept| dept == "Engineering");
+                .where_(Employee::department(), |dept| dept == "Engineering");
             let results = query.all();
             
             println!("  Found {} engineering employees", results.len());
@@ -158,7 +158,7 @@ fn main() {
         // Run 10 queries
         for i in 1..=10 {
             let query = Query::new(&employees)
-                .where_(Employee::salary_r(), |&s| s > 70000.0);
+                .where_(Employee::salary(), |&s| s > 70000.0);
             let _results = query.all();
             
             if i % 3 == 0 {
@@ -196,7 +196,7 @@ fn main() {
 
         {
             let sorted = Query::new(&employees)
-                .order_by_float_desc(Employee::salary_r());
+                .order_by_float_desc(Employee::salary());
             
             let (after_allocs, _) = get_stats();
             println!("  After sorting: {} allocations", after_allocs);
@@ -219,7 +219,7 @@ fn main() {
     println!("Test 4: JOIN operations - verify no memory leaks");
     println!("═══════════════════════════════════════════════════════════════\n");
 
-    #[derive(Keypaths)]
+    #[derive(Keypath)]
     struct Department {
         id: u32,
         name: String,
@@ -251,8 +251,8 @@ fn main() {
         {
             let results = JoinQuery::new(&employees, &departments)
                 .inner_join(
-                    Employee::department_r(),
-                    Department::name_r(),
+                    Employee::department(),
+                    Department::name(),
                     |emp, dept| (emp.name.clone(), dept.name.clone()),
                 );
             
@@ -291,8 +291,8 @@ fn main() {
         // Run complex query
         {
             let query = Query::new(&large_dataset)
-                .where_(Employee::salary_r(), |&s| s > 80000.0)
-                .where_(Employee::department_r(), |d| d == "Engineering");
+                .where_(Employee::salary(), |&s| s > 80000.0)
+                .where_(Employee::department(), |d| d == "Engineering");
             let results = query.all();
             
             println!("  Filtered to {} employees", results.len());
@@ -366,7 +366,7 @@ fn main() {
         {
             println!("  Creating query...");
             let query = Query::new(&employees)
-                .where_(Employee::department_r(), |dept| dept == "Engineering");
+                .where_(Employee::department(), |dept| dept == "Engineering");
             
             {
                 println!("  Executing query...");
@@ -406,7 +406,7 @@ fn main() {
     {
         use std::sync::Arc;
         
-        #[derive(Keypaths)]
+        #[derive(Keypath)]
         struct SharedData {
             id: u32,
             value: Arc<String>,  // Shared ownership
@@ -424,7 +424,7 @@ fn main() {
 
         {
             let query = Query::new(&data)
-                .where_(SharedData::id_r(), |&id| id > 0);
+                .where_(SharedData::id(), |&id| id > 0);
             let results = query.all();
             println!("  Found {} items", results.len());
             println!("  Arc strong count during query: {}", Arc::strong_count(&shared_string));
@@ -442,7 +442,7 @@ fn main() {
     println!("Test 9: Large data without Clone - verify zero-copy");
     println!("═══════════════════════════════════════════════════════════════\n");
 
-    #[derive(Keypaths)]  // NO Clone!
+    #[derive(Keypath)]  // NO Clone!
     struct LargeRecord {
         id: u32,
         // Simulate 1MB of data that we DON'T want to clone
@@ -463,7 +463,7 @@ fn main() {
         {
             println!("\n  Running query without Clone...");
             let query = Query::new(&large_records)
-                .where_(LargeRecord::id_r(), |&id| id < 5);
+                .where_(LargeRecord::id(), |&id| id < 5);
             let results = query.all();  // Vec<&LargeRecord> - NO CLONING!
             
             println!("  Found {} records", results.len());

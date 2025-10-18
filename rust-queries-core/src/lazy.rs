@@ -27,8 +27,8 @@ use chrono::{DateTime, TimeZone};
 /// ```ignore
 /// // Nothing executes yet
 /// let query = LazyQuery::new(&products)
-///     .where_(Product::price_r(), |&p| p < 100.0)
-///     .where_(Product::stock_r(), |&s| s > 0);
+///     .where_(Product::price(), |&p| p < 100.0)
+///     .where_(Product::stock(), |&s| s > 0);
 ///
 /// // Execution happens here
 /// let results: Vec<_> = query.collect();
@@ -90,7 +90,7 @@ where
     ///
     /// ```ignore
     /// let query = LazyQuery::new(&products)
-    ///     .where_(Product::price_r(), |&p| p < 100.0);
+    ///     .where_(Product::price(), |&p| p < 100.0);
     /// ```
     pub fn where_<F, P>(self, path: KeyPaths<T, F>, predicate: P) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
     where
@@ -130,7 +130,7 @@ where
     ///
     /// ```ignore
     /// let names: Vec<String> = LazyQuery::new(&products)
-    ///     .select_lazy(Product::name_r())
+    ///     .select_lazy(Product::name())
     ///     .collect();
     /// ```
     pub fn select_lazy<F>(self, path: KeyPaths<T, F>) -> impl Iterator<Item = F> + 'a
@@ -318,7 +318,7 @@ where
     ///
     /// ```ignore
     /// let total: f64 = LazyQuery::new(&products)
-    ///     .sum_by(Product::price_r());
+    ///     .sum_by(Product::price());
     /// ```
     pub fn sum_by<F>(self, path: KeyPaths<T, F>) -> F
     where
@@ -336,7 +336,7 @@ where
     ///
     /// ```ignore
     /// let avg = LazyQuery::new(&products)
-    ///     .avg_by(Product::price_r());
+    ///     .avg_by(Product::price());
     /// ```
     pub fn avg_by(self, path: KeyPaths<T, f64>) -> Option<f64>
     where
@@ -360,7 +360,7 @@ where
     ///
     /// ```ignore
     /// let min = LazyQuery::new(&products)
-    ///     .min_by(Product::price_r());
+    ///     .min_by(Product::price());
     /// ```
     pub fn min_by<F>(self, path: KeyPaths<T, F>) -> Option<F>
     where
@@ -376,7 +376,7 @@ where
     ///
     /// ```ignore
     /// let max = LazyQuery::new(&products)
-    ///     .max_by(Product::price_r());
+    ///     .max_by(Product::price());
     /// ```
     pub fn max_by<F>(self, path: KeyPaths<T, F>) -> Option<F>
     where
@@ -418,7 +418,7 @@ where
     ///
     /// ```ignore
     /// let recent = LazyQuery::new(&events)
-    ///     .where_after_systemtime(Event::timestamp_r(), cutoff_time)
+    ///     .where_after_systemtime(Event::timestamp(), cutoff_time)
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_after_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
@@ -436,7 +436,7 @@ where
     ///
     /// ```ignore
     /// let old = LazyQuery::new(&events)
-    ///     .where_before_systemtime(Event::timestamp_r(), cutoff_time)
+    ///     .where_before_systemtime(Event::timestamp(), cutoff_time)
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_before_systemtime(self, path: KeyPaths<T, SystemTime>, reference: SystemTime) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
@@ -455,7 +455,7 @@ where
     ///
     /// ```ignore
     /// let range = LazyQuery::new(&events)
-    ///     .where_between_systemtime(Event::timestamp_r(), start, end)
+    ///     .where_between_systemtime(Event::timestamp(), start, end)
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_between_systemtime(
@@ -485,7 +485,7 @@ where
     ///
     /// ```ignore
     /// let recent = LazyQuery::new(&events)
-    ///     .where_after(Event::timestamp_r(), cutoff_time)
+    ///     .where_after(Event::timestamp(), cutoff_time)
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_after<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
@@ -507,7 +507,7 @@ where
     ///
     /// ```ignore
     /// let old = LazyQuery::new(&events)
-    ///     .where_before(Event::timestamp_r(), cutoff_time)
+    ///     .where_before(Event::timestamp(), cutoff_time)
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_before<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, reference: DateTime<Tz>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
@@ -530,7 +530,7 @@ where
     ///
     /// ```ignore
     /// let range = LazyQuery::new(&events)
-    ///     .where_between(Event::timestamp_r(), start, end)
+    ///     .where_between(Event::timestamp(), start, end)
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_between<Tz>(
@@ -557,7 +557,7 @@ where
     ///
     /// ```ignore
     /// let today = LazyQuery::new(&events)
-    ///     .where_today(Event::timestamp_r(), Utc::now())
+    ///     .where_today(Event::timestamp(), Utc::now())
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_today<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, now: DateTime<Tz>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
@@ -581,7 +581,7 @@ where
     ///
     /// ```ignore
     /// let this_year = LazyQuery::new(&events)
-    ///     .where_year(Event::timestamp_r(), 2024)
+    ///     .where_year(Event::timestamp(), 2024)
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_year<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, year: i32) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
@@ -604,7 +604,7 @@ where
     ///
     /// ```ignore
     /// let december = LazyQuery::new(&events)
-    ///     .where_month(Event::timestamp_r(), 12)
+    ///     .where_month(Event::timestamp(), 12)
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_month<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, month: u32) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
@@ -627,7 +627,7 @@ where
     ///
     /// ```ignore
     /// let first = LazyQuery::new(&events)
-    ///     .where_day(Event::timestamp_r(), 1)
+    ///     .where_day(Event::timestamp(), 1)
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_day<Tz>(self, path: KeyPaths<T, DateTime<Tz>>, day: u32) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
@@ -649,7 +649,7 @@ where
     ///
     /// ```ignore
     /// let weekend_events = LazyQuery::new(&events)
-    ///     .where_weekend(Event::timestamp_r())
+    ///     .where_weekend(Event::timestamp())
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_weekend<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
@@ -674,7 +674,7 @@ where
     ///
     /// ```ignore
     /// let weekday_events = LazyQuery::new(&events)
-    ///     .where_weekday(Event::timestamp_r())
+    ///     .where_weekday(Event::timestamp())
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_weekday<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
@@ -699,7 +699,7 @@ where
     ///
     /// ```ignore
     /// let business_hours = LazyQuery::new(&events)
-    ///     .where_business_hours(Event::timestamp_r())
+    ///     .where_business_hours(Event::timestamp())
     ///     .collect::<Vec<_>>();
     /// ```
     pub fn where_business_hours<Tz>(self, path: KeyPaths<T, DateTime<Tz>>) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>

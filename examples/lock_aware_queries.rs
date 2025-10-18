@@ -8,12 +8,12 @@
 // cargo run --example lock_aware_queries --release
 
 use rust_queries_builder::locks::{LockQueryExt, LockIterExt};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock, Mutex};
 use std::time::Instant;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,

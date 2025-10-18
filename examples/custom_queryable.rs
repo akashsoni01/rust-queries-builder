@@ -3,10 +3,10 @@
 // cargo run --example custom_queryable
 
 use rust_queries_builder::{Query, LazyQuery, Queryable};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::collections::VecDeque;
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -255,7 +255,7 @@ fn main() {
     // Collect to owned Vec for querying
     let items: Vec<Product> = paginated.query_iter().cloned().collect();
     let query = Query::new(&items)
-        .where_(Product::category_r(), |cat| cat == "Electronics");
+        .where_(Product::category(), |cat| cat == "Electronics");
     let electronics = query.all();
     
     println!("\n  Querying paginated collection:");
@@ -284,7 +284,7 @@ fn main() {
     // Query the circular buffer
     let circ_items: Vec<Product> = circular.query_iter().cloned().collect();
     let circ_query = Query::new(&circ_items);
-    let avg_price = circ_query.avg(Product::price_r()).unwrap_or(0.0);
+    let avg_price = circ_query.avg(Product::price()).unwrap_or(0.0);
     
     println!("\n  Querying circular buffer:");
     println!("    Average price: ${:.2}", avg_price);
@@ -311,7 +311,7 @@ fn main() {
     // Query the filtered storage
     let filt_items: Vec<Product> = filtered.query_iter().cloned().collect();
     let filt_query = Query::new(&filt_items)
-        .where_(Product::in_stock_r(), |&v| v);
+        .where_(Product::in_stock(), |&v| v);
     let in_stock = filt_query.all();
     
     println!("\n  Querying filtered storage:");
@@ -339,7 +339,7 @@ fn main() {
     let idx_items: Vec<Product> = category_index.query_iter().cloned().collect();
     let idx_query = Query::new(&idx_items);
     let expensive = idx_query
-        .where_(Product::price_r(), |&p| p > 100.0);
+        .where_(Product::price(), |&p| p > 100.0);
     let expensive_items = expensive.all();
     
     println!("\n  Querying category index:");
@@ -368,7 +368,7 @@ fn main() {
     // Query loaded items
     let loader_items: Vec<Product> = loader.query_iter().cloned().collect();
     let loader_query = Query::new(&loader_items);
-    let total_value = loader_query.sum(Product::price_r());
+    let total_value = loader_query.sum(Product::price());
     
     println!("\n  Querying lazy loader:");
     println!("    Total value: ${:.2}", total_value);
@@ -397,7 +397,7 @@ fn main() {
     // Use LazyQuery for early termination!
     let circ_vec: Vec<Product> = circular.query_iter().cloned().collect();
     let first_expensive = LazyQuery::new(&circ_vec)
-        .where_(Product::price_r(), |&p| p > 300.0)
+        .where_(Product::price(), |&p| p > 300.0)
         .first();
 
     if let Some(product) = first_expensive {

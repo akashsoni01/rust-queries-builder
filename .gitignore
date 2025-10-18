@@ -4,3 +4,4 @@
 /rust-queries-core/target
 *.lock
 *.lock
+*.toml

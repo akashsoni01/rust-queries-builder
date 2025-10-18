@@ -8,13 +8,13 @@
 // Run with: cargo run --example complete_api_showcase --features datetime
 
 use rust_queries_builder::{Query, JoinQuery};
-use key_paths_derive::Keypaths;
+use key_paths_derive::Keypath;
 use std::time::{SystemTime, Duration as StdDuration};
 
 #[cfg(feature = "datetime")]
 use chrono::{DateTime, Utc, Duration, TimeZone};
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Product {
     id: u32,
     name: String,
@@ -26,7 +26,7 @@ struct Product {
 }
 
 #[cfg(feature = "datetime")]
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Event {
     id: u32,
     title: String,
@@ -35,7 +35,7 @@ struct Event {
     priority: u32,
 }
 
-#[derive(Debug, Clone, Keypaths)]
+#[derive(Debug, Clone, Keypath)]
 struct Order {
     id: u32,
     product_id: u32,
@@ -176,7 +176,7 @@ fn main() {
     // where_(path, predicate)
     println!("✓ where_(path, predicate) - Filter by predicate");
     let electronics = Query::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics");
+        .where_(Product::category(), |cat| cat == "Electronics");
     println!("  Electronics count: {}\n", electronics.count());
 
     // all()
@@ -199,7 +199,7 @@ fn main() {
     // count()
     println!("✓ count() - Count matching items");
     let count = Query::new(&products)
-        .where_(Product::price_r(), |&price| price > 100.0)
+        .where_(Product::price(), |&price| price > 100.0)
         .count();
     println!("  Products over $100: {}\n", count);
 
@@ -226,7 +226,7 @@ fn main() {
     // exists()
     println!("✓ exists() - Check if any match");
     let has_expensive = Query::new(&products)
-        .where_(Product::price_r(), |&price| price > 1000.0)
+        .where_(Product::price(), |&price| price > 1000.0)
         .exists();
     println!("  Has products over $1000: {}\n", has_expensive);
 
@@ -239,7 +239,7 @@ fn main() {
 
     // order_by(path)
     println!("✓ order_by(path) - Sort ascending");
-    let sorted_by_name = Query::new(&products).order_by(Product::name_r());
+    let sorted_by_name = Query::new(&products).order_by(Product::name());
     println!("  Products sorted by name:");
     for p in sorted_by_name.iter().take(3) {
         println!("    • {}", p.name);
@@ -248,7 +248,7 @@ fn main() {
 
     // order_by_desc(path)
     println!("✓ order_by_desc(path) - Sort descending");
-    let sorted_desc = Query::new(&products).order_by_desc(Product::stock_r());
+    let sorted_desc = Query::new(&products).order_by_desc(Product::stock());
     println!("  Products sorted by stock (descending):");
     for p in sorted_desc.iter().take(3) {
         println!("    • {} - Stock: {}", p.name, p.stock);
@@ -257,7 +257,7 @@ fn main() {
 
     // order_by_float(path)
     println!("✓ order_by_float(path) - Sort f64 ascending");
-    let sorted_by_price = Query::new(&products).order_by_float(Product::price_r());
+    let sorted_by_price = Query::new(&products).order_by_float(Product::price());
     println!("  Products sorted by price:");
     for p in sorted_by_price.iter().take(3) {
         println!("    • {} - ${:.2}", p.name, p.price);
@@ -266,7 +266,7 @@ fn main() {
 
     // order_by_float_desc(path)
     println!("✓ order_by_float_desc(path) - Sort f64 descending");
-    let sorted_by_rating = Query::new(&products).order_by_float_desc(Product::rating_r());
+    let sorted_by_rating = Query::new(&products).order_by_float_desc(Product::rating());
     println!("  Products sorted by rating (descending):");
     for p in sorted_by_rating.iter().take(3) {
         println!("    • {} - Rating: {:.1}", p.name, p.rating);
@@ -282,7 +282,7 @@ fn main() {
 
     // select(path)
     println!("✓ select(path) - Project field");
-    let names = Query::new(&products).select(Product::name_r());
+    let names = Query::new(&products).select(Product::name());
     println!("  All product names:");
     for name in &names {
         println!("    • {}", name);
@@ -291,7 +291,7 @@ fn main() {
 
     // group_by(path)
     println!("✓ group_by(path) - Group by field");
-    let by_category = Query::new(&products).group_by(Product::category_r());
+    let by_category = Query::new(&products).group_by(Product::category());
     println!("  Products grouped by category:");
     for (category, items) in &by_category {
         println!("    {} ({} items):", category, items.len());
@@ -309,29 +309,29 @@ fn main() {
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
     let electronics_query = Query::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics");
+        .where_(Product::category(), |cat| cat == "Electronics");
 
     // sum(path)
     println!("✓ sum(path) - Sum numeric field");
-    let total_price = electronics_query.sum(Product::price_r());
+    let total_price = electronics_query.sum(Product::price());
     println!("  Total electronics value: ${:.2}\n", total_price);
 
     // avg(path)
     println!("✓ avg(path) - Average of f64 field");
-    let avg_price = electronics_query.avg(Product::price_r()).unwrap_or(0.0);
+    let avg_price = electronics_query.avg(Product::price()).unwrap_or(0.0);
     println!("  Average electronics price: ${:.2}\n", avg_price);
 
     // min(path) / max(path)
     println!("✓ min(path) / max(path) - Min/max of Ord field");
-    let min_stock = electronics_query.min(Product::stock_r());
-    let max_stock = electronics_query.max(Product::stock_r());
+    let min_stock = electronics_query.min(Product::stock());
+    let max_stock = electronics_query.max(Product::stock());
     println!("  Min stock: {:?}", min_stock);
     println!("  Max stock: {:?}\n", max_stock);
 
     // min_float(path) / max_float(path)
     println!("✓ min_float(path) / max_float(path) - Min/max of f64 field");
-    let min_price = electronics_query.min_float(Product::price_r());
-    let max_price = electronics_query.max_float(Product::price_r());
+    let min_price = electronics_query.min_float(Product::price());
+    let max_price = electronics_query.max_float(Product::price());
     println!("  Min price: ${:.2}", min_price.unwrap_or(0.0));
     println!("  Max price: ${:.2}\n", max_price.unwrap_or(0.0));
 
@@ -349,19 +349,19 @@ fn main() {
     // where_after_systemtime
     println!("✓ where_after_systemtime(path, time) - Filter after SystemTime");
     let recent = Query::new(&products)
-        .where_after_systemtime(Product::created_at_r(), two_weeks_ago);
+        .where_after_systemtime(Product::created_at(), two_weeks_ago);
     println!("  Products created in last 2 weeks: {}\n", recent.count());
 
     // where_before_systemtime
     println!("✓ where_before_systemtime(path, time) - Filter before SystemTime");
     let old = Query::new(&products)
-        .where_before_systemtime(Product::created_at_r(), two_weeks_ago);
+        .where_before_systemtime(Product::created_at(), two_weeks_ago);
     println!("  Products created before 2 weeks ago: {}\n", old.count());
 
     // where_between_systemtime
     println!("✓ where_between_systemtime(path, start, end) - Filter within range");
     let in_range = Query::new(&products)
-        .where_between_systemtime(Product::created_at_r(), two_weeks_ago, one_week_ago);
+        .where_between_systemtime(Product::created_at(), two_weeks_ago, one_week_ago);
     println!("  Products created 1-2 weeks ago: {}\n", in_range.count());
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -381,50 +381,50 @@ fn main() {
         // where_after
         println!("✓ where_after(path, time) - Filter after datetime");
         let after = Query::new(&events)
-            .where_after(Event::scheduled_at_r(), cutoff);
+            .where_after(Event::scheduled_at(), cutoff);
         println!("  Events after Oct 2: {}\n", after.count());
 
         // where_before
         println!("✓ where_before(path, time) - Filter before datetime");
         let before = Query::new(&events)
-            .where_before(Event::scheduled_at_r(), cutoff);
+            .where_before(Event::scheduled_at(), cutoff);
         println!("  Events before Oct 2: {}\n", before.count());
 
         // where_between
         println!("✓ where_between(path, start, end) - Filter within range");
         let between = Query::new(&events)
-            .where_between(Event::scheduled_at_r(), oct_start, oct_end);
+            .where_between(Event::scheduled_at(), oct_start, oct_end);
         println!("  Events in October: {}\n", between.count());
 
         // where_today
         println!("✓ where_today(path, now) - Filter for today");
         let today_ref = Utc.with_ymd_and_hms(2024, 10, 1, 15, 0, 0).unwrap();
         let today = Query::new(&events)
-            .where_today(Event::scheduled_at_r(), today_ref);
+            .where_today(Event::scheduled_at(), today_ref);
         println!("  Events on Oct 1: {}\n", today.count());
 
         // where_year
         println!("✓ where_year(path, year) - Filter by year");
         let year_2024 = Query::new(&events)
-            .where_year(Event::scheduled_at_r(), 2024);
+            .where_year(Event::scheduled_at(), 2024);
         println!("  Events in 2024: {}\n", year_2024.count());
 
         // where_month
         println!("✓ where_month(path, month) - Filter by month (1-12)");
         let october = Query::new(&events)
-            .where_month(Event::scheduled_at_r(), 10);
+            .where_month(Event::scheduled_at(), 10);
         println!("  Events in October: {}\n", october.count());
 
         // where_day
         println!("✓ where_day(path, day) - Filter by day (1-31)");
         let first_day = Query::new(&events)
-            .where_day(Event::scheduled_at_r(), 1);
+            .where_day(Event::scheduled_at(), 1);
         println!("  Events on the 1st: {}\n", first_day.count());
 
         // where_weekend
         println!("✓ where_weekend(path) - Filter for weekends");
         let weekend = Query::new(&events)
-            .where_weekend(Event::scheduled_at_r());
+            .where_weekend(Event::scheduled_at());
         println!("  Weekend events:");
         for e in weekend.all() {
             println!("    • {} - {}", e.title, e.scheduled_at.format("%A, %Y-%m-%d"));
@@ -434,13 +434,13 @@ fn main() {
         // where_weekday
         println!("✓ where_weekday(path) - Filter for weekdays");
         let weekday = Query::new(&events)
-            .where_weekday(Event::scheduled_at_r());
+            .where_weekday(Event::scheduled_at());
         println!("  Weekday events: {}\n", weekday.count());
 
         // where_business_hours
         println!("✓ where_business_hours(path) - Filter for business hours (9 AM - 5 PM)");
         let business = Query::new(&events)
-            .where_business_hours(Event::scheduled_at_r());
+            .where_business_hours(Event::scheduled_at());
         println!("  Events during business hours:");
         for e in business.all() {
             println!("    • {} - {}", e.title, e.scheduled_at.format("%H:%M"));
@@ -473,8 +473,8 @@ fn main() {
     println!("✓ inner_join(left_key, right_key, mapper) - Inner join");
     let inner_results: Vec<OrderDetail> = JoinQuery::new(&orders, &products)
         .inner_join(
-            Order::product_id_r(),
-            Product::id_r(),
+            Order::product_id(),
+            Product::id(),
             |order, product| OrderDetail {
                 order_id: order.id,
                 product_name: product.name.clone(),
@@ -493,8 +493,8 @@ fn main() {
     println!("✓ left_join(left_key, right_key, mapper) - Left join");
     let left_results: Vec<String> = JoinQuery::new(&orders, &products)
         .left_join(
-            Order::product_id_r(),
-            Product::id_r(),
+            Order::product_id(),
+            Product::id(),
             |order, opt_product| {
                 match opt_product {
                     Some(p) => format!("Order #{} - {} (${:.2})", order.id, p.name, order.total),
@@ -512,8 +512,8 @@ fn main() {
     println!("✓ right_join(left_key, right_key, mapper) - Right join");
     let right_results: Vec<String> = JoinQuery::new(&orders, &products)
         .right_join(
-            Order::product_id_r(),
-            Product::id_r(),
+            Order::product_id(),
+            Product::id(),
             |opt_order, product| {
                 match opt_order {
                     Some(o) => format!("{} - Ordered {} times", product.name, o.quantity),
@@ -531,8 +531,8 @@ fn main() {
     println!("✓ inner_join_where(left_key, right_key, predicate, mapper) - Filtered join");
     let filtered_joins: Vec<OrderDetail> = JoinQuery::new(&orders, &products)
         .inner_join_where(
-            Order::product_id_r(),
-            Product::id_r(),
+            Order::product_id(),
+            Product::id(),
             |order, product| order.quantity > 1 && product.price > 100.0,
             |order, product| OrderDetail {
                 order_id: order.id,
@@ -570,10 +570,10 @@ fn main() {
     // Complex 1: Multi-condition filtering with aggregation
     println!("Example 1: High-rated electronics under $500");
     let high_value = Query::new(&products)
-        .where_(Product::category_r(), |cat| cat == "Electronics")
-        .where_(Product::price_r(), |&price| price < 500.0)
-        .where_(Product::rating_r(), |&rating| rating >= 4.5)
-        .order_by_float_desc(Product::rating_r());
+        .where_(Product::category(), |cat| cat == "Electronics")
+        .where_(Product::price(), |&price| price < 500.0)
+        .where_(Product::rating(), |&rating| rating >= 4.5)
+        .order_by_float_desc(Product::rating());
     
     println!("  Found {} products:", high_value.len());
     for p in &high_value {
@@ -583,21 +583,21 @@ fn main() {
 
     // Complex 2: Category statistics
     println!("Example 2: Category statistics with grouping");
-    let grouped = Query::new(&products).group_by(Product::category_r());
+    let grouped = Query::new(&products).group_by(Product::category());
     for (category, items) in &grouped {
         let cat_query = Query::new(items);
         println!("  {} Statistics:", category);
         println!("    • Count: {}", items.len());
-        println!("    • Total Value: ${:.2}", cat_query.sum(Product::price_r()));
-        println!("    • Avg Price: ${:.2}", cat_query.avg(Product::price_r()).unwrap_or(0.0));
-        println!("    • Total Stock: {}", cat_query.sum(Product::stock_r()));
+        println!("    • Total Value: ${:.2}", cat_query.sum(Product::price()));
+        println!("    • Avg Price: ${:.2}", cat_query.avg(Product::price()).unwrap_or(0.0));
+        println!("    • Total Stock: {}", cat_query.sum(Product::stock()));
     }
     println!();
 
     // Complex 3: Pagination with ordering
     println!("Example 3: Paginated results (page 1, 2 items per page)");
     let page1 = Query::new(&products)
-        .order_by_float_desc(Product::price_r());
+        .order_by_float_desc(Product::price());
     let page1_items: Vec<_> = page1.iter().take(2).collect();
     
     println!("  Page 1:");

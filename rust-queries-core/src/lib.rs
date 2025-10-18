@@ -22,9 +22,9 @@
 //!
 //! ```rust
 //! use rust_queries_core::{Query, QueryExt};
-//! use key_paths_derive::Keypaths;
+//! use key_paths_derive::Keypath;
 //!
-//! #[derive(Keypaths)]
+//! #[derive(Keypath)]
 //! struct Product {
 //!     id: u32,
 //!     name: String,
@@ -37,7 +37,7 @@
 //! ];
 //!
 //! // Using extension trait
-//! let query = products.query().where_(Product::price_r(), |&p| p > 100.0);
+//! let query = products.query().where_(Product::price(), |&p| p > 100.0);
 //! let expensive = query.all();
 //! ```
 

@@ -738,6 +738,9 @@ cargo run --example datetime_operations --features datetime
 # i64 Timestamp aggregators - Unix timestamps in milliseconds (v1.0.5+)
 cargo run --example i64_timestamp_aggregators
 
+# Local datetime over UTC epoch - timezone-aware operations (v1.0.5+)
+cargo run --example local_datetime_utc_epoch
+
 # Lazy DateTime operations - efficient datetime queries with early termination (v0.7.0+)
 cargo run --example lazy_datetime_operations --features datetime --release
 
@@ -931,6 +934,61 @@ let tech_events = Query::new(&events)
 **Time-based Ordering:**
 - `order_by_timestamp()` - Sort by timestamp (oldest first)
 - `order_by_timestamp_desc()` - Sort by timestamp (newest first)
+
+## Local DateTime over UTC Epoch (NEW in v1.0.5!)
+
+Advanced timezone-aware operations with UTC timestamps interpreted in local timezones:
+
+```rust
+use rust_queries_builder::{Query, Keypath};
+use chrono::{DateTime, Utc, FixedOffset};
+
+#[derive(Keypath)]
+struct LocalEvent {
+    utc_timestamp: i64,        // UTC timestamp in milliseconds
+    local_timezone: String,    // Timezone identifier
+    category: String,
+    is_business_hours: bool,   // Whether event is during local business hours
+}
+
+let events = vec![/* ... */];
+
+// Timezone-aware business hours detection
+let business_hours = Query::new(&events)
+    .where_(LocalEvent::is_business_hours(), |&is_business| is_business)
+    .all();
+
+// Cross-timezone simultaneous events
+let same_utc_time = 1704067200000; // 2024-01-01 00:00:00 UTC
+let simultaneous = Query::new(&events)
+    .where_(LocalEvent::utc_timestamp(), move |&ts| ts == same_utc_time)
+    .all();
+
+// Duration analysis by timezone
+for timezone in ["America/New_York", "Europe/London", "Asia/Tokyo"] {
+    let tz_query = Query::new(&events)
+        .where_(LocalEvent::local_timezone(), move |tz| tz == timezone);
+    
+    let avg_duration = tz_query.avg(LocalEvent::duration_minutes()).unwrap_or(0.0);
+    let total_duration = tz_query.sum(LocalEvent::duration_minutes());
+    let event_count = tz_query.count();
+    
+    println!("{}: {} events, avg duration: {:.1} min", 
+             timezone, event_count, avg_duration);
+}
+```
+
+### Key Features
+
+- **UTC timestamp storage** with local timezone interpretation
+- **Timezone-aware business hours** detection (9 AM - 5 PM local time)
+- **Cross-timezone event analysis** and filtering
+- **Local time range filtering** (morning/evening hours)
+- **Simultaneous event detection** across timezones
+- **Duration analysis by timezone**
+- **Category analysis with timezone context**
+- **UTC vs local time comparison**
+- **Timezone offset calculation**
 
 ## Key-Paths
 

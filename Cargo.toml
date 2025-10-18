@@ -64,6 +64,10 @@ name = "i64_timestamp_aggregators"
 path = "examples/i64_timestamp_aggregators.rs"
 
 [[example]]
+name = "local_datetime_utc_epoch"
+path = "examples/local_datetime_utc_epoch.rs"
+
+[[example]]
 name = "memory_safety_verification"
 path = "examples/memory_safety_verification.rs"
 

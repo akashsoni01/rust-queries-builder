@@ -1,6 +1,6 @@
 [package]
 name = "rust-queries-builder"
-version = "1.0.5"
+version = "1.0.6"
 edition = "2021"
 authors = ["codefonsi<codefonsi@gmail.com>"]
 description = "A powerful, type-safe query builder library for Rust that leverages key-paths for SQL-like operations on in-memory collections"
@@ -10,8 +10,8 @@ keywords = ["query", "builder", "database", "sql", "keypaths"]
 categories = ["database", "data-structures"]
 
 [dependencies]
-rust-queries-core = { path = "rust-queries-core", version = "1.0.5" }
-rust-queries-derive = { path = "rust-queries-derive", version = "1.0.5" }
+rust-queries-core = { path = "rust-queries-core", version = "1.0.6" }
+rust-queries-derive = { path = "rust-queries-derive", version = "1.0.6" }
 
 # Re-exported for convenience
 tagged-core = "0.7.0"

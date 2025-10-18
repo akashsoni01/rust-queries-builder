@@ -2,6 +2,8 @@
 //!
 //! This example shows how to use the new timestamp aggregators with i64 values that represent
 //! Unix timestamps in milliseconds, similar to Java's Date.getTime() or JavaScript's Date.getTime().
+//! 
+//! Supports both positive timestamps (dates after 1970-01-01) and negative timestamps (dates before 1970-01-01).
 
 use rust_queries_builder::{Query, Keypath};
 use chrono::{DateTime, Local, Utc, TimeZone, Datelike};
@@ -33,25 +35,31 @@ fn main() {
     println!("=== i64 Timestamp Aggregators Demo ===\n");
 
     // Create sample events with i64 timestamps (Unix timestamps in milliseconds)
-    // These timestamps represent dates from 2001-01-01 to 2024-12-31
+    // These timestamps represent dates from 1969-01-01 to 2028-12-31
+    // Note: Negative timestamps represent dates before 1970-01-01 (Unix epoch)
     let events = vec![
-        // Historical events (2001-2005)
-        Event::new(1, "Y2K Aftermath", 978307200000, 978307200000, 60, "Historical"),
-        Event::new(2, "Dot-com Recovery", 1009843200000, 1009843200000, 120, "Historical"),
-        Event::new(3, "Early Internet", 1104537600000, 1104537600000, 90, "Historical"),
+        // Pre-epoch events (negative timestamps)
+        Event::new(1, "Apollo 11 Moon Landing", -141829200000, -141829200000, 1440, "Historical"),
+        Event::new(2, "Woodstock Festival", -14112000000, -14112000000, 4320, "Historical"),
+        Event::new(3, "First Computer Network", -94694400000, -94694400000, 60, "Technology"),
+        
+        // Early epoch events (1970-2000)
+        Event::new(4, "Y2K Aftermath", 978307200000, 978307200000, 60, "Historical"),
+        Event::new(5, "Dot-com Recovery", 1009843200000, 1009843200000, 120, "Historical"),
+        Event::new(6, "Early Internet", 1104537600000, 1104537600000, 90, "Historical"),
         
         // Recent events (2020-2024)
-        Event::new(4, "Remote Work Revolution", 1577836800000, 1577836800000, 480, "Work"),
-        Event::new(5, "AI Breakthrough", 1609459200000, 1609459200000, 180, "Technology"),
-        Event::new(6, "Climate Summit", 1640995200000, 1640995200000, 1440, "Environment"),
-        Event::new(7, "Space Mission", 1672531200000, 1672531200000, 2880, "Science"),
-        Event::new(8, "Tech Conference", 1704067200000, 1704067200000, 480, "Technology"),
-        Event::new(9, "Future Planning", 1735689600000, 1735689600000, 120, "Planning"),
+        Event::new(7, "Remote Work Revolution", 1577836800000, 1577836800000, 480, "Work"),
+        Event::new(8, "AI Breakthrough", 1609459200000, 1609459200000, 180, "Technology"),
+        Event::new(9, "Climate Summit", 1640995200000, 1640995200000, 1440, "Environment"),
+        Event::new(10, "Space Mission", 1672531200000, 1672531200000, 2880, "Science"),
+        Event::new(11, "Tech Conference", 1704067200000, 1704067200000, 480, "Technology"),
+        Event::new(12, "Future Planning", 1735689600000, 1735689600000, 120, "Planning"),
         
         // Future events (2025+)
-        Event::new(10, "Mars Mission", 1767225600000, 1767225600000, 43200, "Science"),
-        Event::new(11, "Quantum Computing", 1798761600000, 1798761600000, 240, "Technology"),
-        Event::new(12, "Sustainable Future", 1830297600000, 1830297600000, 2880, "Environment"),
+        Event::new(13, "Mars Mission", 1767225600000, 1767225600000, 43200, "Science"),
+        Event::new(14, "Quantum Computing", 1798761600000, 1798761600000, 240, "Technology"),
+        Event::new(15, "Sustainable Future", 1830297600000, 1830297600000, 2880, "Environment"),
     ];
 
     println!("📅 Sample Events (with i64 timestamps):");
@@ -129,17 +137,31 @@ fn main() {
     
     println!("\n⏰ Time-based Filtering:");
     
-    // Filter by timestamp ranges
+    // Filter by timestamp ranges (including negative timestamps for pre-epoch dates)
+    let epoch_start = 0; // 1970-01-01 00:00:00 UTC
     let year_2000_cutoff = 946684800000; // 2000-01-01 00:00:00 UTC
     let year_2020_cutoff = 1577836800000; // 2020-01-01 00:00:00 UTC
     let year_2025_cutoff = 1735689600000; // 2025-01-01 00:00:00 UTC
+    
+    // Pre-epoch events (negative timestamps - dates before 1970)
+    let pre_epoch_query = Query::new(&events)
+        .where_before_timestamp(Event::created_at(), epoch_start);
+    let pre_epoch_events = pre_epoch_query.all();
+    
+    println!("  Pre-epoch events (before 1970): {} events", pre_epoch_events.len());
+    for event in &pre_epoch_events {
+        let dt = DateTime::from_timestamp_millis(event.created_at)
+            .unwrap_or_else(|| Utc.timestamp_opt(0, 0).unwrap())
+            .with_timezone(&Local);
+        println!("    - {}: {} ({}) [timestamp: {}]", event.id, event.name, dt.format("%Y-%m-%d"), event.created_at);
+    }
     
     // Events created after 2000
     let modern_query = Query::new(&events)
         .where_after_timestamp(Event::created_at(), year_2000_cutoff);
     let modern_events = modern_query.all();
     
-    println!("  Events created after 2000: {} events", modern_events.len());
+    println!("\n  Events created after 2000: {} events", modern_events.len());
     for event in &modern_events {
         let dt = DateTime::from_timestamp_millis(event.created_at)
             .unwrap_or_else(|| Utc.timestamp_opt(0, 0).unwrap())
@@ -336,4 +358,5 @@ fn main() {
     println!("  • order_by_timestamp() / order_by_timestamp_desc() - Time-based sorting");
     println!("  • Complex queries combining timestamp operations with other filters");
     println!("  • Integration with chrono for human-readable date formatting");
+    println!("  • Support for negative timestamps (dates before 1970-01-01) - Pre-epoch dates");
 }

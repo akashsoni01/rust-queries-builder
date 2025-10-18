@@ -852,7 +852,7 @@ The query builder uses:
 
 ## i64 Timestamp Aggregators (NEW in v1.0.5!)
 
-Work with Unix timestamps stored as `i64` values in milliseconds, compatible with Java's `Date.getTime()` and JavaScript's `Date.getTime()`:
+Work with Unix timestamps stored as `i64` values in milliseconds, compatible with Java's `Date.getTime()` and JavaScript's `Date.getTime()`. Supports both positive timestamps (dates after 1970-01-01) and negative timestamps (dates before 1970-01-01):
 
 ```rust
 use rust_queries_builder::{Query, Keypath};
@@ -874,8 +874,14 @@ let avg = Query::new(&events).avg_timestamp(Event::created_at());
 let total = Query::new(&events).sum_timestamp(Event::created_at());
 let count = Query::new(&events).count_timestamp(Event::created_at());
 
-// Time-based filtering
+// Time-based filtering (including negative timestamps for pre-epoch dates)
+let epoch_start = 0; // 1970-01-01 00:00:00 UTC
 let year_2020 = 1577836800000; // 2020-01-01 00:00:00 UTC
+
+// Pre-epoch events (negative timestamps - dates before 1970)
+let pre_epoch = Query::new(&events)
+    .where_before_timestamp(Event::created_at(), epoch_start);
+
 let recent = Query::new(&events)
     .where_after_timestamp(Event::created_at(), year_2020);
 

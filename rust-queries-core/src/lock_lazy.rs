@@ -1039,4 +1039,285 @@ where
     }
 }
 
+// ========================================================================
+// i64 DATETIME AGGREGATORS (Unix timestamps in milliseconds)
+// ========================================================================
+
+impl<'a, T: 'static, L, I> LockLazyQuery<'a, T, L, I>
+where
+    L: LockValue<T> + 'a,
+    I: Iterator<Item = &'a L> + 'a,
+{
+    /// Finds minimum i64 timestamp value (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let earliest = events
+    ///     .lock_lazy_query()
+    ///     .min_timestamp(Event::created_at());
+    /// ```
+    pub fn min_timestamp(self, path: KeyPaths<T, i64>) -> Option<i64> {
+        self.iter
+            .filter_map(|lock| {
+                lock.with_value(|item| path.get(item).cloned()).flatten()
+            })
+            .min()
+    }
+
+    /// Finds maximum i64 timestamp value (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let latest = events
+    ///     .lock_lazy_query()
+    ///     .max_timestamp(Event::created_at());
+    /// ```
+    pub fn max_timestamp(self, path: KeyPaths<T, i64>) -> Option<i64> {
+        self.iter
+            .filter_map(|lock| {
+                lock.with_value(|item| path.get(item).cloned()).flatten()
+            })
+            .max()
+    }
+
+    /// Computes average of i64 timestamp values (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let avg = events
+    ///     .lock_lazy_query()
+    ///     .avg_timestamp(Event::created_at());
+    /// ```
+    pub fn avg_timestamp(self, path: KeyPaths<T, i64>) -> Option<i64> {
+        let items: Vec<i64> = self.iter
+            .filter_map(|lock| {
+                lock.with_value(|item| path.get(item).cloned()).flatten()
+            })
+            .collect();
+
+        if items.is_empty() {
+            None
+        } else {
+            Some(items.iter().sum::<i64>() / items.len() as i64)
+        }
+    }
+
+    /// Computes sum of i64 timestamp values (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let total = events
+    ///     .lock_lazy_query()
+    ///     .sum_timestamp(Event::created_at());
+    /// ```
+    pub fn sum_timestamp(self, path: KeyPaths<T, i64>) -> i64 {
+        self.iter
+            .filter_map(|lock| {
+                lock.with_value(|item| path.get(item).cloned()).flatten()
+            })
+            .sum()
+    }
+
+    /// Counts i64 timestamp values (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let count = events
+    ///     .lock_lazy_query()
+    ///     .count_timestamp(Event::created_at());
+    /// ```
+    pub fn count_timestamp(self, path: KeyPaths<T, i64>) -> usize {
+        self.iter
+            .filter(|lock| {
+                lock.with_value(|item| path.get(item).is_some()).unwrap_or(false)
+            })
+            .count()
+    }
+
+    /// Filter by i64 timestamp being after a reference time (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `reference` - The reference timestamp to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = events
+    ///     .lock_lazy_query()
+    ///     .where_after_timestamp(Event::created_at(), cutoff_time);
+    /// ```
+    pub fn where_after_timestamp(self, path: KeyPaths<T, i64>, reference: i64) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        self.where_(path, move |timestamp| timestamp > &reference)
+    }
+
+    /// Filter by i64 timestamp being before a reference time (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `reference` - The reference timestamp to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let old = events
+    ///     .lock_lazy_query()
+    ///     .where_before_timestamp(Event::created_at(), cutoff_time);
+    /// ```
+    pub fn where_before_timestamp(self, path: KeyPaths<T, i64>, reference: i64) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        self.where_(path, move |timestamp| timestamp < &reference)
+    }
+
+    /// Filter by i64 timestamp being between two times (inclusive, lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `start` - The start timestamp
+    /// * `end` - The end timestamp
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let range = events
+    ///     .lock_lazy_query()
+    ///     .where_between_timestamp(Event::created_at(), start, end);
+    /// ```
+    pub fn where_between_timestamp(
+        self,
+        path: KeyPaths<T, i64>,
+        start: i64,
+        end: i64,
+    ) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        self.where_(path, move |timestamp| timestamp >= &start && timestamp <= &end)
+    }
+
+    /// Filter by i64 timestamp being within the last N days (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `days` - Number of days to look back
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = events
+    ///     .lock_lazy_query()
+    ///     .where_last_days_timestamp(Event::created_at(), 30);
+    /// ```
+    pub fn where_last_days_timestamp(self, path: KeyPaths<T, i64>, days: i64) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now - (days * 24 * 60 * 60 * 1000); // Convert days to milliseconds
+        self.where_after_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the next N days (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `days` - Number of days to look forward
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let upcoming = events
+    ///     .lock_lazy_query()
+    ///     .where_next_days_timestamp(Event::scheduled_at(), 7);
+    /// ```
+    pub fn where_next_days_timestamp(self, path: KeyPaths<T, i64>, days: i64) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now + (days * 24 * 60 * 60 * 1000); // Convert days to milliseconds
+        self.where_before_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the last N hours (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `hours` - Number of hours to look back
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = events
+    ///     .lock_lazy_query()
+    ///     .where_last_hours_timestamp(Event::created_at(), 24);
+    /// ```
+    pub fn where_last_hours_timestamp(self, path: KeyPaths<T, i64>, hours: i64) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now - (hours * 60 * 60 * 1000); // Convert hours to milliseconds
+        self.where_after_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the next N hours (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `hours` - Number of hours to look forward
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let upcoming = events
+    ///     .lock_lazy_query()
+    ///     .where_next_hours_timestamp(Event::scheduled_at(), 2);
+    /// ```
+    pub fn where_next_hours_timestamp(self, path: KeyPaths<T, i64>, hours: i64) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now + (hours * 60 * 60 * 1000); // Convert hours to milliseconds
+        self.where_before_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the last N minutes (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `minutes` - Number of minutes to look back
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = events
+    ///     .lock_lazy_query()
+    ///     .where_last_minutes_timestamp(Event::created_at(), 60);
+    /// ```
+    pub fn where_last_minutes_timestamp(self, path: KeyPaths<T, i64>, minutes: i64) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now - (minutes * 60 * 1000); // Convert minutes to milliseconds
+        self.where_after_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the next N minutes (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `minutes` - Number of minutes to look forward
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let upcoming = events
+    ///     .lock_lazy_query()
+    ///     .where_next_minutes_timestamp(Event::scheduled_at(), 30);
+    /// ```
+    pub fn where_next_minutes_timestamp(self, path: KeyPaths<T, i64>, minutes: i64) -> LockLazyQuery<'a, T, L, impl Iterator<Item = &'a L> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now + (minutes * 60 * 1000); // Convert minutes to milliseconds
+        self.where_before_timestamp(path, cutoff)
+    }
+}
+
 

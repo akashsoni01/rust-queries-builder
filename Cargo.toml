@@ -144,6 +144,10 @@ name = "lazy_aggregators_demo"
 path = "examples/lazy_aggregators_demo.rs"
 
 [[example]]
+name = "comprehensive_i64_aggregators"
+path = "examples/comprehensive_i64_aggregators.rs"
+
+[[example]]
 name = "keypath_showcase"
 path = "examples/keypath_showcase.rs"
 

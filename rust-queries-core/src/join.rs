@@ -307,5 +307,6 @@ impl<'a, L: 'static, R: 'static> JoinQuery<'a, L, R> {
         }
         results
     }
+
 }
 

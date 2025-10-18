@@ -715,6 +715,284 @@ where
     }
 }
 
+// i64 DateTime Aggregators (Unix timestamps in milliseconds)
+impl<'a, T: 'static, I> LazyQuery<'a, T, I>
+where
+    I: Iterator<Item = &'a T> + 'a,
+{
+    /// Finds minimum i64 timestamp value (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let earliest = LazyQuery::new(&events)
+    ///     .min_timestamp(Event::created_at_r());
+    /// ```
+    pub fn min_timestamp(self, path: KeyPaths<T, i64>) -> Option<i64>
+    where
+        I: 'a,
+    {
+        self.iter
+            .filter_map(move |item| path.get(item).cloned())
+            .min()
+    }
+
+    /// Finds maximum i64 timestamp value (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let latest = LazyQuery::new(&events)
+    ///     .max_timestamp(Event::created_at_r());
+    /// ```
+    pub fn max_timestamp(self, path: KeyPaths<T, i64>) -> Option<i64>
+    where
+        I: 'a,
+    {
+        self.iter
+            .filter_map(move |item| path.get(item).cloned())
+            .max()
+    }
+
+    /// Computes average of i64 timestamp values (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let avg = LazyQuery::new(&events)
+    ///     .avg_timestamp(Event::created_at_r());
+    /// ```
+    pub fn avg_timestamp(self, path: KeyPaths<T, i64>) -> Option<i64>
+    where
+        I: 'a,
+    {
+        let items: Vec<i64> = self
+            .iter
+            .filter_map(move |item| path.get(item).cloned())
+            .collect();
+
+        if items.is_empty() {
+            None
+        } else {
+            Some(items.iter().sum::<i64>() / items.len() as i64)
+        }
+    }
+
+    /// Computes sum of i64 timestamp values (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let total = LazyQuery::new(&events)
+    ///     .sum_timestamp(Event::created_at_r());
+    /// ```
+    pub fn sum_timestamp(self, path: KeyPaths<T, i64>) -> i64
+    where
+        I: 'a,
+    {
+        self.iter
+            .filter_map(move |item| path.get(item).cloned())
+            .sum()
+    }
+
+    /// Counts i64 timestamp values (terminal operation).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let count = LazyQuery::new(&events)
+    ///     .count_timestamp(Event::created_at_r());
+    /// ```
+    pub fn count_timestamp(self, path: KeyPaths<T, i64>) -> usize
+    where
+        I: 'a,
+    {
+        self.iter
+            .filter(move |item| path.get(item).is_some())
+            .count()
+    }
+
+    /// Filter by i64 timestamp being after a reference time (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `reference` - The reference timestamp to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = LazyQuery::new(&events)
+    ///     .where_after_timestamp(Event::created_at_r(), cutoff_time)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_after_timestamp(self, path: KeyPaths<T, i64>, reference: i64) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        self.where_(path, move |timestamp| timestamp > &reference)
+    }
+
+    /// Filter by i64 timestamp being before a reference time (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `reference` - The reference timestamp to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let old = LazyQuery::new(&events)
+    ///     .where_before_timestamp(Event::created_at_r(), cutoff_time)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_before_timestamp(self, path: KeyPaths<T, i64>, reference: i64) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        self.where_(path, move |timestamp| timestamp < &reference)
+    }
+
+    /// Filter by i64 timestamp being between two times (inclusive, lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `start` - The start timestamp
+    /// * `end` - The end timestamp
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let range = LazyQuery::new(&events)
+    ///     .where_between_timestamp(Event::created_at_r(), start, end)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_between_timestamp(
+        self,
+        path: KeyPaths<T, i64>,
+        start: i64,
+        end: i64,
+    ) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        self.where_(path, move |timestamp| timestamp >= &start && timestamp <= &end)
+    }
+
+    /// Filter by i64 timestamp being within the last N days (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `days` - Number of days to look back
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = LazyQuery::new(&events)
+    ///     .where_last_days_timestamp(Event::created_at_r(), 30)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_last_days_timestamp(self, path: KeyPaths<T, i64>, days: i64) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now - (days * 24 * 60 * 60 * 1000); // Convert days to milliseconds
+        self.where_after_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the next N days (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `days` - Number of days to look forward
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let upcoming = LazyQuery::new(&events)
+    ///     .where_next_days_timestamp(Event::scheduled_at_r(), 7)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_next_days_timestamp(self, path: KeyPaths<T, i64>, days: i64) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now + (days * 24 * 60 * 60 * 1000); // Convert days to milliseconds
+        self.where_before_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the last N hours (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `hours` - Number of hours to look back
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = LazyQuery::new(&events)
+    ///     .where_last_hours_timestamp(Event::created_at_r(), 24)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_last_hours_timestamp(self, path: KeyPaths<T, i64>, hours: i64) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now - (hours * 60 * 60 * 1000); // Convert hours to milliseconds
+        self.where_after_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the next N hours (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `hours` - Number of hours to look forward
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let upcoming = LazyQuery::new(&events)
+    ///     .where_next_hours_timestamp(Event::scheduled_at_r(), 2)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_next_hours_timestamp(self, path: KeyPaths<T, i64>, hours: i64) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now + (hours * 60 * 60 * 1000); // Convert hours to milliseconds
+        self.where_before_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the last N minutes (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `minutes` - Number of minutes to look back
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = LazyQuery::new(&events)
+    ///     .where_last_minutes_timestamp(Event::created_at_r(), 60)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_last_minutes_timestamp(self, path: KeyPaths<T, i64>, minutes: i64) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now - (minutes * 60 * 1000); // Convert minutes to milliseconds
+        self.where_after_timestamp(path, cutoff)
+    }
+
+    /// Filter by i64 timestamp being within the next N minutes (lazy).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `minutes` - Number of minutes to look forward
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let upcoming = LazyQuery::new(&events)
+    ///     .where_next_minutes_timestamp(Event::scheduled_at_r(), 30)
+    ///     .collect::<Vec<_>>();
+    /// ```
+    pub fn where_next_minutes_timestamp(self, path: KeyPaths<T, i64>, minutes: i64) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a> {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now + (minutes * 60 * 1000); // Convert minutes to milliseconds
+        self.where_before_timestamp(path, cutoff)
+    }
+}
+
 // Enable using LazyQuery in for loops
 impl<'a, T: 'static, I> IntoIterator for LazyQuery<'a, T, I>
 where

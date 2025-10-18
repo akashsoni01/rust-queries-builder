@@ -20,7 +20,7 @@ key-paths-derive = "1.0.2"
 chrono = { version = "0.4", optional = true }
 
 [features]
-default = []
+default = ["datetime"]
 datetime = ["rust-queries-core/datetime", "chrono"]
 parking_lot = ["rust-queries-core/parking_lot"]
 tokio = ["rust-queries-core/tokio"]
@@ -58,6 +58,10 @@ path = "examples/doc_examples.rs"
 [[example]]
 name = "without_clone"
 path = "examples/without_clone.rs"
+
+[[example]]
+name = "i64_timestamp_aggregators"
+path = "examples/i64_timestamp_aggregators.rs"
 
 [[example]]
 name = "memory_safety_verification"

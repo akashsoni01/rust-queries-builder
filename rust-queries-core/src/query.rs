@@ -745,6 +745,339 @@ impl<'a, T: 'static + Clone> Query<'a, T> {
 
         groups
     }
+
+    // ============================================================================
+    // i64 DateTime Aggregators (Unix timestamps in milliseconds)
+    // ============================================================================
+
+    /// Finds the minimum i64 timestamp value.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let earliest = query.min_timestamp(Event::created_at());
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn min_timestamp(&self, path: KeyPaths<T, i64>) -> Option<i64> {
+        self.data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter_map(|item| path.get(item).cloned())
+            .min()
+    }
+
+    /// Finds the maximum i64 timestamp value.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let latest = query.max_timestamp(Event::created_at());
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn max_timestamp(&self, path: KeyPaths<T, i64>) -> Option<i64> {
+        self.data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter_map(|item| path.get(item).cloned())
+            .max()
+    }
+
+    /// Calculates the average of i64 timestamp values.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let avg_timestamp = query.avg_timestamp(Event::created_at()).unwrap_or(0);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn avg_timestamp(&self, path: KeyPaths<T, i64>) -> Option<i64> {
+        let items: Vec<i64> = self
+            .data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter_map(|item| path.get(item).cloned())
+            .collect();
+
+        if items.is_empty() {
+            None
+        } else {
+            Some(items.iter().sum::<i64>() / items.len() as i64)
+        }
+    }
+
+    /// Calculates the sum of i64 timestamp values.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let total_timestamp = query.sum_timestamp(Event::created_at());
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn sum_timestamp(&self, path: KeyPaths<T, i64>) -> i64 {
+        self.data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter_map(|item| path.get(item).cloned())
+            .sum()
+    }
+
+    /// Counts the number of non-null i64 timestamp values.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let timestamp_count = query.count_timestamp(Event::created_at());
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn count_timestamp(&self, path: KeyPaths<T, i64>) -> usize {
+        self.data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| path.get(item).is_some())
+            .count()
+    }
+
+    /// Filters by i64 timestamp being after a reference timestamp.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `reference` - The reference timestamp to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = query.where_after_timestamp(Event::created_at(), cutoff_timestamp);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn where_after_timestamp(self, path: KeyPaths<T, i64>, reference: i64) -> Self {
+        self.where_(path, move |timestamp| timestamp > &reference)
+    }
+
+    /// Filters by i64 timestamp being before a reference timestamp.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `reference` - The reference timestamp to compare against
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let old = query.where_before_timestamp(Event::created_at(), cutoff_timestamp);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn where_before_timestamp(self, path: KeyPaths<T, i64>, reference: i64) -> Self {
+        self.where_(path, move |timestamp| timestamp < &reference)
+    }
+
+    /// Filters by i64 timestamp being between two timestamps (inclusive).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `start` - The start timestamp
+    /// * `end` - The end timestamp
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let range = query.where_between_timestamp(Event::created_at(), start_ts, end_ts);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn where_between_timestamp(self, path: KeyPaths<T, i64>, start: i64, end: i64) -> Self {
+        self.where_(path, move |timestamp| timestamp >= &start && timestamp <= &end)
+    }
+
+    /// Filters by i64 timestamp being within the last N days from now.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `days` - Number of days to look back
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = query.where_last_days_timestamp(Event::created_at(), 30);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn where_last_days_timestamp(self, path: KeyPaths<T, i64>, days: i64) -> Self {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now - (days * 24 * 60 * 60 * 1000); // Convert days to milliseconds
+        self.where_after_timestamp(path, cutoff)
+    }
+
+    /// Filters by i64 timestamp being within the next N days from now.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `days` - Number of days to look ahead
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let upcoming = query.where_next_days_timestamp(Event::scheduled_at(), 7);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn where_next_days_timestamp(self, path: KeyPaths<T, i64>, days: i64) -> Self {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now + (days * 24 * 60 * 60 * 1000); // Convert days to milliseconds
+        self.where_before_timestamp(path, cutoff)
+    }
+
+    /// Filters by i64 timestamp being within the last N hours from now.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `hours` - Number of hours to look back
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = query.where_last_hours_timestamp(Event::created_at(), 24);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn where_last_hours_timestamp(self, path: KeyPaths<T, i64>, hours: i64) -> Self {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now - (hours * 60 * 60 * 1000); // Convert hours to milliseconds
+        self.where_after_timestamp(path, cutoff)
+    }
+
+    /// Filters by i64 timestamp being within the next N hours from now.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `hours` - Number of hours to look ahead
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let upcoming = query.where_next_hours_timestamp(Event::scheduled_at(), 2);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn where_next_hours_timestamp(self, path: KeyPaths<T, i64>, hours: i64) -> Self {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now + (hours * 60 * 60 * 1000); // Convert hours to milliseconds
+        self.where_before_timestamp(path, cutoff)
+    }
+
+    /// Filters by i64 timestamp being within the last N minutes from now.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `minutes` - Number of minutes to look back
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let recent = query.where_last_minutes_timestamp(Event::created_at(), 60);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn where_last_minutes_timestamp(self, path: KeyPaths<T, i64>, minutes: i64) -> Self {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now - (minutes * 60 * 1000); // Convert minutes to milliseconds
+        self.where_after_timestamp(path, cutoff)
+    }
+
+    /// Filters by i64 timestamp being within the next N minutes from now.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    /// * `minutes` - Number of minutes to look ahead
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let upcoming = query.where_next_minutes_timestamp(Event::scheduled_at(), 30);
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn where_next_minutes_timestamp(self, path: KeyPaths<T, i64>, minutes: i64) -> Self {
+        let now = chrono::Utc::now().timestamp_millis();
+        let cutoff = now + (minutes * 60 * 1000); // Convert minutes to milliseconds
+        self.where_before_timestamp(path, cutoff)
+    }
+
+    /// Orders results by i64 timestamp in ascending order (oldest first).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = query.order_by_timestamp(Event::created_at());
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn order_by_timestamp(&self, path: KeyPaths<T, i64>) -> Vec<T> {
+        let mut results: Vec<T> = self
+            .data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .cloned()
+            .collect();
+
+        results.sort_by(|a, b| {
+            let a_val = path.get(a).cloned().unwrap_or(0);
+            let b_val = path.get(b).cloned().unwrap_or(0);
+            a_val.cmp(&b_val)
+        });
+        results
+    }
+
+    /// Orders results by i64 timestamp in descending order (newest first).
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The key-path to the i64 timestamp field
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sorted = query.order_by_timestamp_desc(Event::created_at());
+    /// ```
+    #[cfg(feature = "datetime")]
+    pub fn order_by_timestamp_desc(&self, path: KeyPaths<T, i64>) -> Vec<T> {
+        let mut results: Vec<T> = self
+            .data
+            .iter()
+            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .cloned()
+            .collect();
+
+        results.sort_by(|a, b| {
+            let a_val = path.get(a).cloned().unwrap_or(0);
+            let b_val = path.get(b).cloned().unwrap_or(0);
+            b_val.cmp(&a_val)
+        });
+        results
+    }
 }
 
 /// Helper struct for pagination after a skip operation.

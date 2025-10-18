@@ -735,6 +735,9 @@ cargo run --example join_query_builder
 # DateTime operations - filter by dates, times, weekdays (v0.7.0+, requires datetime feature)
 cargo run --example datetime_operations --features datetime
 
+# i64 Timestamp aggregators - Unix timestamps in milliseconds (v1.0.5+)
+cargo run --example i64_timestamp_aggregators
+
 # Lazy DateTime operations - efficient datetime queries with early termination (v0.7.0+)
 cargo run --example lazy_datetime_operations --features datetime --release
 
@@ -847,6 +850,82 @@ The query builder uses:
 - **v0.1.0**: ~5ms (cloned 10MB)
 - **v0.2.0**: ~0.1ms (zero copy) - **50x faster!**
 
+## i64 Timestamp Aggregators (NEW in v1.0.5!)
+
+Work with Unix timestamps stored as `i64` values in milliseconds, compatible with Java's `Date.getTime()` and JavaScript's `Date.getTime()`:
+
+```rust
+use rust_queries_builder::{Query, Keypath};
+
+#[derive(Keypath)]
+struct Event {
+    id: u32,
+    name: String,
+    created_at: i64,        // Unix timestamp in milliseconds
+    scheduled_at: i64,      // Unix timestamp in milliseconds
+}
+
+let events = vec![/* ... */];
+
+// Basic timestamp aggregators
+let earliest = Query::new(&events).min_timestamp(Event::created_at());
+let latest = Query::new(&events).max_timestamp(Event::created_at());
+let avg = Query::new(&events).avg_timestamp(Event::created_at());
+let total = Query::new(&events).sum_timestamp(Event::created_at());
+let count = Query::new(&events).count_timestamp(Event::created_at());
+
+// Time-based filtering
+let year_2020 = 1577836800000; // 2020-01-01 00:00:00 UTC
+let recent = Query::new(&events)
+    .where_after_timestamp(Event::created_at(), year_2020);
+
+// Relative time filtering
+let last_30_days = Query::new(&events)
+    .where_last_days_timestamp(Event::created_at(), 30);
+
+let next_7_days = Query::new(&events)
+    .where_next_days_timestamp(Event::scheduled_at(), 7);
+
+// Time-based ordering
+let chronological = Query::new(&events)
+    .order_by_timestamp(Event::created_at());
+
+let reverse_chronological = Query::new(&events)
+    .order_by_timestamp_desc(Event::scheduled_at());
+
+// Complex queries
+let tech_events = Query::new(&events)
+    .where_(Event::category(), |cat| cat == "Technology")
+    .where_last_days_timestamp(Event::created_at(), 365)
+    .order_by_timestamp(Event::created_at());
+```
+
+### Available Timestamp Methods
+
+**Basic Aggregators:**
+- `min_timestamp()` - Find earliest timestamp
+- `max_timestamp()` - Find latest timestamp
+- `avg_timestamp()` - Calculate average timestamp
+- `sum_timestamp()` - Sum all timestamps
+- `count_timestamp()` - Count non-null timestamps
+
+**Time-based Filtering:**
+- `where_after_timestamp()` - Filter timestamps after reference
+- `where_before_timestamp()` - Filter timestamps before reference
+- `where_between_timestamp()` - Filter timestamps between two values
+
+**Relative Time Filtering:**
+- `where_last_days_timestamp()` - Last N days from now
+- `where_next_days_timestamp()` - Next N days from now
+- `where_last_hours_timestamp()` - Last N hours from now
+- `where_next_hours_timestamp()` - Next N hours from now
+- `where_last_minutes_timestamp()` - Last N minutes from now
+- `where_next_minutes_timestamp()` - Next N minutes from now
+
+**Time-based Ordering:**
+- `order_by_timestamp()` - Sort by timestamp (oldest first)
+- `order_by_timestamp_desc()` - Sort by timestamp (newest first)
+
 ## Key-Paths
 
 This library leverages the `key-paths` crate to provide type-safe field access. The `Keypath` derive macro automatically generates accessor methods for your structs:
@@ -946,6 +1025,7 @@ If upgrading from v0.8.0 or earlier, you'll gain:
 
 ### Version History
 
+- **v1.0.5** (2025) - i64 timestamp aggregators for Unix timestamps in milliseconds
 - **v1.0.0** (2025) - Stable release, universal lock support
 - **v0.9.0** (2024) - Tokio and parking_lot lock extensions
 - **v0.8.0** (2024) - Lock-aware queries with JOINs and VIEWs

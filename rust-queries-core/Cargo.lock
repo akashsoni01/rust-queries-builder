@@ -153,15 +153,18 @@ dependencies = [
 
 [[package]]
 name = "key-paths-core"
-version = "1.0.2"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff7d9e2a017e8a871792d9759ce442fb6e254c1076bf2dfc54a8a03839bac593"
+checksum = "9f574bd784a58014dcae9af0fe403758cf010579aa1b2b3e5b9c69895aa9e278"
+dependencies = [
+ "tagged-core",
+]
 
 [[package]]
 name = "key-paths-derive"
-version = "0.6.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7034a164c4f49a15597d6dd7121ce4996fc23eb738bef87fb9c4327a66162184"
+checksum = "5fa3ffcb3728c4c87f252f8247390dbee4d5dcd3a6e6de272030fbb81a60411c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -297,7 +300,7 @@ dependencies = [
 
 [[package]]
 name = "rust-queries-core"
-version = "1.0.4"
+version = "1.0.5"
 dependencies = [
  "chrono",
  "key-paths-core",
@@ -352,6 +355,12 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "tagged-core"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "693ccc11750e1810ccfe37badec414cba07bd25d3ef6e381551f01283d93a38c"
 
 [[package]]
 name = "tokio"

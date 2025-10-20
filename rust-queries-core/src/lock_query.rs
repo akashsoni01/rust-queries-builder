@@ -670,6 +670,7 @@ where
     }
 }
 
+
 /// Helper to create LockQuery from HashMap.
 pub trait LockQueryable<T, L>
 where

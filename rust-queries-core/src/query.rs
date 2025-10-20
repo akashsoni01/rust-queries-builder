@@ -1111,3 +1111,211 @@ impl<'a, 'b, T: 'static> QueryWithSkip<'a, 'b, T> {
     }
 }
 
+    // Parallel operations (only available with parallel feature)
+    #[cfg(feature = "parallel")]
+    impl<'a, T: 'static + Send + Sync> Query<'a, T> {
+    /// Get all items using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let results = query.all_parallel();
+    /// ```
+    pub fn all_parallel(&self) -> Vec<&'a T> {
+        use rayon::prelude::*;
+        self.data.par_iter().collect()
+    }
+
+    /// Count all items using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let count = query.count_parallel();
+    /// ```
+    pub fn count_parallel(&self) -> usize {
+        use rayon::prelude::*;
+        self.data.par_iter().count()
+    }
+
+    /// Check if any items exist using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let exists = query.exists_parallel();
+    /// ```
+    pub fn exists_parallel(&self) -> bool {
+        use rayon::prelude::*;
+        self.data.par_iter().any(|_| true)
+    }
+
+    /// Find minimum value using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let min = query.min_parallel(Product::price());
+    /// ```
+    pub fn min_parallel<F>(&self, path: KeyPaths<T, F>) -> Option<F>
+    where
+        F: Ord + Clone + 'static + Send + Sync,
+    {
+        use rayon::prelude::*;
+        self.data
+            .par_iter()
+            .filter_map(|item| path.get(item).cloned())
+            .min()
+    }
+
+    /// Find maximum value using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let max = query.max_parallel(Product::price());
+    /// ```
+    pub fn max_parallel<F>(&self, path: KeyPaths<T, F>) -> Option<F>
+    where
+        F: Ord + Clone + 'static + Send + Sync,
+    {
+        use rayon::prelude::*;
+        self.data
+            .par_iter()
+            .filter_map(|item| path.get(item).cloned())
+            .max()
+    }
+
+    /// Compute sum using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let sum = query.sum_parallel(Product::price());
+    /// ```
+    pub fn sum_parallel<F>(&self, path: KeyPaths<T, F>) -> F
+    where
+        F: Clone + std::ops::Add<Output = F> + Default + 'static + Send + Sync + std::iter::Sum,
+    {
+        use rayon::prelude::*;
+        self.data
+            .par_iter()
+            .filter_map(|item| path.get(item).cloned())
+            .sum()
+    }
+
+    /// Compute average using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let avg = query.avg_parallel(Product::price());
+    /// ```
+    pub fn avg_parallel(&self, path: KeyPaths<T, f64>) -> Option<f64> {
+        use rayon::prelude::*;
+        let items: Vec<f64> = self.data
+            .par_iter()
+            .filter_map(|item| path.get(item).cloned())
+            .collect();
+
+        if items.is_empty() {
+            None
+        } else {
+            Some(items.par_iter().sum::<f64>() / items.len() as f64)
+        }
+    }
+
+    /// Find minimum i64 timestamp using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let earliest = query.min_timestamp_parallel(Event::created_at());
+    /// ```
+    pub fn min_timestamp_parallel(&self, path: KeyPaths<T, i64>) -> Option<i64> {
+        use rayon::prelude::*;
+        self.data
+            .par_iter()
+            .filter_map(|item| path.get(item).cloned())
+            .min()
+    }
+
+    /// Find maximum i64 timestamp using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let latest = query.max_timestamp_parallel(Event::created_at());
+    /// ```
+    pub fn max_timestamp_parallel(&self, path: KeyPaths<T, i64>) -> Option<i64> {
+        use rayon::prelude::*;
+        self.data
+            .par_iter()
+            .filter_map(|item| path.get(item).cloned())
+            .max()
+    }
+
+    /// Compute average i64 timestamp using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let avg = query.avg_timestamp_parallel(Event::created_at());
+    /// ```
+    pub fn avg_timestamp_parallel(&self, path: KeyPaths<T, i64>) -> Option<i64> {
+        use rayon::prelude::*;
+        let items: Vec<i64> = self.data
+            .par_iter()
+            .filter_map(|item| path.get(item).cloned())
+            .collect();
+
+        if items.is_empty() {
+            None
+        } else {
+            Some(items.par_iter().sum::<i64>() / items.len() as i64)
+        }
+    }
+
+    /// Compute sum of i64 timestamps using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let total = query.sum_timestamp_parallel(Event::created_at());
+    /// ```
+    pub fn sum_timestamp_parallel(&self, path: KeyPaths<T, i64>) -> i64 {
+        use rayon::prelude::*;
+        self.data
+            .par_iter()
+            .filter_map(|item| path.get(item).cloned())
+            .sum()
+    }
+
+    /// Count i64 timestamps using parallel processing.
+    /// Note: This method ignores filters for thread safety.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let count = query.count_timestamp_parallel(Event::created_at());
+    /// ```
+    pub fn count_timestamp_parallel(&self, path: KeyPaths<T, i64>) -> usize {
+        use rayon::prelude::*;
+        self.data
+            .par_iter()
+            .filter(|item| path.get(item).is_some())
+            .count()
+    }
+}
+

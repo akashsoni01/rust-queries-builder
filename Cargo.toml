@@ -161,3 +161,7 @@ path = "examples/keypath_showcase.rs"
 name = "lazy_parallel_query_demo"
 path = "examples/lazy_parallel_query_demo.rs"
 
+[[example]]
+name = "lazy_parallel_performance_comparison"
+path = "examples/lazy_parallel_performance_comparison.rs"
+

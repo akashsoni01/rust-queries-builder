@@ -157,3 +157,7 @@ path = "examples/parallel_queries_demo.rs"
 name = "keypath_showcase"
 path = "examples/keypath_showcase.rs"
 
+[[example]]
+name = "lazy_parallel_query_demo"
+path = "examples/lazy_parallel_query_demo.rs"
+

@@ -44,6 +44,7 @@
 pub mod query;
 pub mod join;
 pub mod lazy;
+pub mod lazy_parallel;
 pub mod queryable;
 pub mod ext;
 pub mod datetime;
@@ -60,6 +61,7 @@ pub mod macros;
 pub use query::{Query, QueryWithSkip};
 pub use join::JoinQuery;
 pub use lazy::LazyQuery;
+pub use lazy_parallel::{LazyParallelQuery, LazyParallelQueryExt};
 pub use queryable::Queryable;
 pub use ext::{QueryExt, QueryableExt};
 pub use locks::{LockValue, LockQueryExt, LockIterExt, LockedValueRef};

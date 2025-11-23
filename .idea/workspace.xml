@@ -11,7 +11,10 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bbd83c56-ce1b-4cb6-b1b7-4ea12b5bcc75" name="Changes" comment="" />
+    <list default="true" id="bbd83c56-ce1b-4cb6-b1b7-4ea12b5bcc75" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/rust-queries-core/src/lazy_join.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rust-queries-core/src/lazy_join.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rust-queries-core/src/lazy_parallel.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rust-queries-core/src/lazy_parallel.rs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -87,6 +90,7 @@
       <workItem from="1763027132087" duration="588000" />
       <workItem from="1763225568442" duration="170000" />
       <workItem from="1763888495303" duration="1263000" />
+      <workItem from="1763900291026" duration="641000" />
     </task>
     <servers />
   </component>

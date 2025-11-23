@@ -32,8 +32,10 @@ use {
     std::time::SystemTime,
 };
 
+// DateTime is used in doc comments and conditional compilation
 #[cfg(feature = "datetime")]
-use chrono::{DateTime, TimeZone};
+#[allow(unused_imports)]
+use chrono::DateTime;
 
 /// A parallel lazy query builder that uses rayon for parallel processing.
 ///

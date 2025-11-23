@@ -83,7 +83,8 @@ impl<'a, L: 'static, R: 'static> LazyJoinQuery<'a, L, R> {
     ) -> impl Iterator<Item = O> + 'a
     where
         K: Eq + std::hash::Hash + Clone + 'static,
-        F: Fn(&L, &R) -> O + 'a,
+        F: Fn(&'a L, &'a R) -> O + 'a,
+        O: 'a,
     {
         // Build index for right side for O(n) lookup
         let mut right_index: HashMap<K, Vec<&'a R>> = HashMap::new();
@@ -94,15 +95,25 @@ impl<'a, L: 'static, R: 'static> LazyJoinQuery<'a, L, R> {
         }
 
         // Return iterator that lazily evaluates the join
+        // We need to collect matches first to avoid closure capture issues
         self.left.iter().flat_map(move |left_item| {
             let key_opt = left_key.get(left_item).cloned();
-            let mapper_ref = &mapper;
             
-            key_opt
-                .and_then(|key| right_index.get(&key).cloned())
-                .into_iter()
-                .flatten()
-                .map(move |right_item| mapper_ref(left_item, right_item))
+            if let Some(key) = key_opt {
+                if let Some(right_items) = right_index.get(&key) {
+                    // Collect matches into Vec to avoid closure capture issues
+                    let matches: Vec<O> = right_items.iter()
+                        .map(|right_item| mapper(left_item, right_item))
+                        .collect();
+                    matches.into_iter()
+                } else {
+                    // No matches - return empty iterator
+                    Vec::<O>::new().into_iter()
+                }
+            } else {
+                // No key - return empty iterator
+                Vec::<O>::new().into_iter()
+            }
         })
     }
 
@@ -140,7 +151,8 @@ impl<'a, L: 'static, R: 'static> LazyJoinQuery<'a, L, R> {
     ) -> impl Iterator<Item = O> + 'a
     where
         K: Eq + std::hash::Hash + Clone + 'static,
-        F: Fn(&L, Option<&R>) -> O + 'a,
+        F: Fn(&'a L, Option<&'a R>) -> O + 'a,
+        O: 'a,
     {
         // Build index for right side
         let mut right_index: HashMap<K, Vec<&'a R>> = HashMap::new();
@@ -153,22 +165,21 @@ impl<'a, L: 'static, R: 'static> LazyJoinQuery<'a, L, R> {
         // Return iterator that lazily evaluates the join
         self.left.iter().flat_map(move |left_item| {
             let key_opt = left_key.get(left_item).cloned();
-            let mapper_ref = &mapper;
             
             if let Some(key) = key_opt {
                 if let Some(right_items) = right_index.get(&key) {
                     // Has matches - yield all matches
-                    let matches: Vec<_> = right_items.iter()
-                        .map(|right_item| mapper_ref(left_item, Some(right_item)))
+                    let matches: Vec<O> = right_items.iter()
+                        .map(|right_item| mapper(left_item, Some(right_item)))
                         .collect();
                     matches.into_iter()
                 } else {
                     // No matches - yield None
-                    std::iter::once(mapper_ref(left_item, None))
+                    vec![mapper(left_item, None)].into_iter()
                 }
             } else {
                 // No key - yield None
-                std::iter::once(mapper_ref(left_item, None))
+                vec![mapper(left_item, None)].into_iter()
             }
         })
     }
@@ -207,8 +218,9 @@ impl<'a, L: 'static, R: 'static> LazyJoinQuery<'a, L, R> {
     ) -> impl Iterator<Item = O> + 'a
     where
         K: Eq + std::hash::Hash + Clone + 'static,
-        F: Fn(&L, &R) -> O + 'a,
-        P: Fn(&L, &R) -> bool + 'a,
+        F: Fn(&'a L, &'a R) -> O + 'a,
+        P: Fn(&'a L, &'a R) -> bool + 'a,
+        O: 'a,
     {
         // Build index for right side
         let mut right_index: HashMap<K, Vec<&'a R>> = HashMap::new();
@@ -219,17 +231,26 @@ impl<'a, L: 'static, R: 'static> LazyJoinQuery<'a, L, R> {
         }
 
         // Return iterator that lazily evaluates the join with predicate
+        // We need to collect matches first to avoid closure capture issues
         self.left.iter().flat_map(move |left_item| {
             let key_opt = left_key.get(left_item).cloned();
-            let mapper_ref = &mapper;
-            let predicate_ref = &predicate;
             
-            key_opt
-                .and_then(|key| right_index.get(&key).cloned())
-                .into_iter()
-                .flatten()
-                .filter(move |right_item| predicate_ref(left_item, right_item))
-                .map(move |right_item| mapper_ref(left_item, right_item))
+            if let Some(key) = key_opt {
+                if let Some(right_items) = right_index.get(&key) {
+                    // Collect filtered matches into Vec to avoid closure capture issues
+                    let matches: Vec<O> = right_items.iter()
+                        .filter(|right_item| predicate(left_item, right_item))
+                        .map(|right_item| mapper(left_item, right_item))
+                        .collect();
+                    matches.into_iter()
+                } else {
+                    // No matches - return empty iterator
+                    Vec::<O>::new().into_iter()
+                }
+            } else {
+                // No key - return empty iterator
+                Vec::<O>::new().into_iter()
+            }
         })
     }
 }

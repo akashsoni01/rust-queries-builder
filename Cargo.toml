@@ -161,3 +161,6 @@ path = "examples/lazy_parallel_query_demo.rs"
 name = "lazy_parallel_performance_comparison"
 path = "examples/lazy_parallel_performance_comparison.rs"
 
+[profile.release]
+debug = true
+

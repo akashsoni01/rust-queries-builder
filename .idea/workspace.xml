@@ -11,16 +11,7 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bbd83c56-ce1b-4cb6-b1b7-4ea12b5bcc75" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/rust-queries-builder.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rust-queries-core/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/rust-queries-core/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rust-queries-core/src/ext.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rust-queries-core/src/ext.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-    </list>
+    <list default="true" id="bbd83c56-ce1b-4cb6-b1b7-4ea12b5bcc75" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -95,6 +86,7 @@
       <updated>1763027130965</updated>
       <workItem from="1763027132087" duration="588000" />
       <workItem from="1763225568442" duration="170000" />
+      <workItem from="1763888495303" duration="1263000" />
     </task>
     <servers />
   </component>

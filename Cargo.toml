@@ -161,6 +161,10 @@ path = "examples/lazy_parallel_query_demo.rs"
 name = "lazy_parallel_performance_comparison"
 path = "examples/lazy_parallel_performance_comparison.rs"
 
+[[example]]
+name = "and_or_operators"
+path = "examples/and_or_operators.rs"
+
 [profile.release]
 debug = true
 

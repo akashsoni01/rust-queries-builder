@@ -21,6 +21,7 @@ use chrono::{DateTime, TimeZone};
 /// - **Iterator fusion**: Rust optimizes chained operations
 /// - **Early termination**: `.take()` stops as soon as enough items found
 /// - **Composable**: Build complex queries by composition
+/// - **Logical operators**: Support AND/OR filter composition
 ///
 /// # Example
 ///
@@ -32,13 +33,35 @@ use chrono::{DateTime, TimeZone};
 ///
 /// // Execution happens here
 /// let results: Vec<_> = query.collect();
+/// 
+/// // With AND/OR operators
+/// let query = LazyQuery::new(&products)
+///     .where_(Product::price(), |&p| p < 100.0)
+///     .and(Product::stock(), |&s| s > 0)
+///     .or(Product::category(), |c| c == "Premium");
 /// ```
 pub struct LazyQuery<'a, T: 'static, I>
 where
     I: Iterator<Item = &'a T>,
 {
     iter: I,
+    filter_groups: Vec<FilterGroup<'a, T>>,
     _phantom: PhantomData<&'a T>,
+}
+
+/// Represents a group of filters with a logical operator
+enum FilterGroup<'a, T: 'static> {
+    And(Vec<Box<dyn Fn(&T) -> bool + 'a>>),
+    Or(Vec<Box<dyn Fn(&T) -> bool + 'a>>),
+}
+
+impl<'a, T: 'static> FilterGroup<'a, T> {
+    fn evaluate(&self, item: &T) -> bool {
+        match self {
+            FilterGroup::And(filters) => filters.iter().all(|f| f(item)),
+            FilterGroup::Or(filters) => filters.iter().any(|f| f(item)),
+        }
+    }
 }
 
 impl<'a, T: 'static> LazyQuery<'a, T, std::slice::Iter<'a, T>> {
@@ -52,6 +75,7 @@ impl<'a, T: 'static> LazyQuery<'a, T, std::slice::Iter<'a, T>> {
     pub fn new(data: &'a [T]) -> Self {
         Self {
             iter: data.iter(),
+            filter_groups: Vec::new(),
             _phantom: PhantomData,
         }
     }
@@ -75,8 +99,40 @@ where
     pub fn from_iter(iter: I) -> Self {
         Self {
             iter,
+            filter_groups: Vec::new(),
             _phantom: PhantomData,
         }
+    }
+    
+    /// Applies all filter groups to the iterator
+    /// 
+    /// Filter groups are evaluated as follows:
+    /// - AND groups: all filters in the group must pass
+    /// - OR groups: at least one filter in the group must pass
+    /// - Between groups: if there are both AND and OR groups, items must satisfy
+    ///   either all AND groups OR at least one OR group (if OR groups exist)
+    fn apply_filters(self) -> impl Iterator<Item = &'a T> + 'a
+    where
+        I: 'a,
+    {
+        let filter_groups = self.filter_groups;
+        let (and_groups, or_groups): (Vec<_>, Vec<_>) = filter_groups
+            .into_iter()
+            .partition(|group| matches!(group, FilterGroup::And(_)));
+        
+        self.iter.filter(move |item| {
+            // If there are OR groups, item must satisfy either:
+            // - All AND groups, OR
+            // - At least one OR group
+            if !or_groups.is_empty() {
+                let all_and_pass = and_groups.iter().all(|group| group.evaluate(item));
+                let any_or_pass = or_groups.iter().any(|group| group.evaluate(item));
+                all_and_pass || any_or_pass
+            } else {
+                // If no OR groups, all AND groups must pass
+                and_groups.iter().all(|group| group.evaluate(item))
+            }
+        })
     }
 }
 
@@ -85,6 +141,7 @@ where
     I: Iterator<Item = &'a T> + 'a,
 {
     /// Adds a filter predicate (lazy - not executed yet).
+    /// Multiple `where_` calls are implicitly ANDed together.
     ///
     /// # Example
     ///
@@ -92,17 +149,88 @@ where
     /// let query = LazyQuery::new(&products)
     ///     .where_(Product::price(), |&p| p < 100.0);
     /// ```
-    pub fn where_<F, P>(self, path: KeyPaths<T, F>, predicate: P) -> LazyQuery<'a, T, impl Iterator<Item = &'a T> + 'a>
+    pub fn where_<F, P>(mut self, path: KeyPaths<T, F>, predicate: P) -> Self
     where
         F: 'static,
         P: Fn(&F) -> bool + 'a,
     {
-        LazyQuery {
-            iter: self.iter.filter(move |item| {
-                path.get(item).map_or(false, |val| predicate(val))
-            }),
-            _phantom: PhantomData,
+        // If the last group is an AND group, add to it; otherwise create a new AND group
+        let filter = Box::new(move |item: &T| {
+            path.get(item).map_or(false, |val| predicate(val))
+        });
+        
+        match self.filter_groups.last_mut() {
+            Some(FilterGroup::And(filters)) => {
+                filters.push(filter);
+            }
+            _ => {
+                self.filter_groups.push(FilterGroup::And(vec![filter]));
+            }
         }
+        
+        self
+    }
+    
+    /// Adds a filter with AND logic (explicit AND operator).
+    /// This is equivalent to `where_` but makes the AND relationship explicit.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let query = LazyQuery::new(&products)
+    ///     .where_(Product::price(), |&p| p < 100.0)
+    ///     .and(Product::stock(), |&s| s > 0);
+    /// ```
+    pub fn and<F, P>(mut self, path: KeyPaths<T, F>, predicate: P) -> Self
+    where
+        F: 'static,
+        P: Fn(&F) -> bool + 'a,
+    {
+        let filter = Box::new(move |item: &T| {
+            path.get(item).map_or(false, |val| predicate(val))
+        });
+        
+        match self.filter_groups.last_mut() {
+            Some(FilterGroup::And(filters)) => {
+                filters.push(filter);
+            }
+            _ => {
+                self.filter_groups.push(FilterGroup::And(vec![filter]));
+            }
+        }
+        
+        self
+    }
+    
+    /// Adds a filter with OR logic (explicit OR operator).
+    /// Items matching this filter OR any filters in the current OR group will pass.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let query = LazyQuery::new(&products)
+    ///     .where_(Product::price(), |&p| p < 100.0)
+    ///     .or(Product::category(), |c| c == "Premium");
+    /// ```
+    pub fn or<F, P>(mut self, path: KeyPaths<T, F>, predicate: P) -> Self
+    where
+        F: 'static,
+        P: Fn(&F) -> bool + 'a,
+    {
+        let filter = Box::new(move |item: &T| {
+            path.get(item).map_or(false, |val| predicate(val))
+        });
+        
+        match self.filter_groups.last_mut() {
+            Some(FilterGroup::Or(filters)) => {
+                filters.push(filter);
+            }
+            _ => {
+                self.filter_groups.push(FilterGroup::Or(vec![filter]));
+            }
+        }
+        
+        self
     }
 
     /// Maps each item through a transformation (lazy).
@@ -119,7 +247,7 @@ where
         F: Fn(&'a T) -> O + 'a,
         I: 'a,
     {
-        self.iter.map(f)
+        self.apply_filters().map(f)
     }
 
     /// Selects/projects a field value (lazy).
@@ -138,7 +266,7 @@ where
         F: Clone + 'static,
         I: 'a,
     {
-        self.iter.filter_map(move |item| path.get(item).cloned())
+        self.apply_filters().filter_map(move |item| path.get(item).cloned())
     }
 
     /// Takes at most `n` items (lazy).
@@ -156,6 +284,7 @@ where
     {
         LazyQuery {
             iter: self.iter.take(n),
+            filter_groups: self.filter_groups,
             _phantom: PhantomData,
         }
     }
@@ -176,6 +305,7 @@ where
     {
         LazyQuery {
             iter: self.iter.skip(n),
+            filter_groups: self.filter_groups,
             _phantom: PhantomData,
         }
     }
@@ -187,8 +317,11 @@ where
     /// ```ignore
     /// let results: Vec<&Product> = query.collect();
     /// ```
-    pub fn collect(self) -> Vec<&'a T> {
-        self.iter.collect()
+    pub fn collect(self) -> Vec<&'a T>
+    where
+        I: 'a,
+    {
+        self.apply_filters().collect()
     }
 
     /// Gets the first item (terminal operation - executes until first match).
@@ -198,8 +331,11 @@ where
     /// ```ignore
     /// let first = query.first();
     /// ```
-    pub fn first(mut self) -> Option<&'a T> {
-        self.iter.next()
+    pub fn first(self) -> Option<&'a T>
+    where
+        I: 'a,
+    {
+        self.apply_filters().next()
     }
 
     /// Counts items (terminal operation - executes query).
@@ -209,8 +345,11 @@ where
     /// ```ignore
     /// let count = query.count();
     /// ```
-    pub fn count(self) -> usize {
-        self.iter.count()
+    pub fn count(self) -> usize
+    where
+        I: 'a,
+    {
+        self.apply_filters().count()
     }
 
     /// Checks if any items match (terminal operation - short-circuits).
@@ -220,8 +359,11 @@ where
     /// ```ignore
     /// let exists = query.any();
     /// ```
-    pub fn any(mut self) -> bool {
-        self.iter.next().is_some()
+    pub fn any(self) -> bool
+    where
+        I: 'a,
+    {
+        self.apply_filters().next().is_some()
     }
 
     /// Executes a function for each item (terminal operation).
@@ -235,7 +377,7 @@ where
     where
         F: FnMut(&'a T),
     {
-        self.iter.for_each(f)
+        self.apply_filters().for_each(f)
     }
 
     /// Folds the iterator (terminal operation).
@@ -249,7 +391,7 @@ where
     where
         F: FnMut(B, &'a T) -> B,
     {
-        self.iter.fold(init, f)
+        self.apply_filters().fold(init, f)
     }
 
     /// Finds an item matching a predicate (terminal - short-circuits).
@@ -259,11 +401,12 @@ where
     /// ```ignore
     /// let found = query.find(|item| item.id == 42);
     /// ```
-    pub fn find<P>(mut self, predicate: P) -> Option<&'a T>
+    pub fn find<P>(self, predicate: P) -> Option<&'a T>
     where
         P: FnMut(&&'a T) -> bool,
+        I: 'a,
     {
-        self.iter.find(predicate)
+        self.apply_filters().find(predicate)
     }
 
     /// Checks if all items match a predicate (terminal - short-circuits).
@@ -273,11 +416,12 @@ where
     /// ```ignore
     /// let all_positive = query.all_match(|item| item.value > 0);
     /// ```
-    pub fn all_match<P>(mut self, mut predicate: P) -> bool
+    pub fn all_match<P>(self, mut predicate: P) -> bool
     where
         P: FnMut(&'a T) -> bool,
+        I: 'a,
     {
-        self.iter.all(move |item| predicate(item))
+        self.apply_filters().all(move |item| predicate(item))
     }
 
     /// Collects all items into a vector (terminal operation - executes query).
@@ -287,8 +431,11 @@ where
     /// ```ignore
     /// let results: Vec<&Product> = query.all();
     /// ```
-    pub fn all(self) -> Vec<&'a T> {
-        self.iter.collect()
+    pub fn all(self) -> Vec<&'a T>
+    where
+        I: 'a,
+    {
+        self.apply_filters().collect()
     }
 
     /// Converts to a standard iterator for further chaining.
@@ -325,7 +472,7 @@ where
         F: Clone + std::ops::Add<Output = F> + Default + 'static,
         I: 'a,
     {
-        self.iter
+        self.apply_filters()
             .filter_map(move |item| path.get(item).cloned())
             .fold(F::default(), |acc, val| acc + val)
     }
@@ -343,7 +490,7 @@ where
         I: 'a,
     {
         let items: Vec<f64> = self
-            .iter
+            .apply_filters()
             .filter_map(move |item| path.get(item).cloned())
             .collect();
 
@@ -367,7 +514,7 @@ where
         F: Ord + Clone + 'static,
         I: 'a,
     {
-        self.iter.filter_map(move |item| path.get(item).cloned()).min()
+        self.apply_filters().filter_map(move |item| path.get(item).cloned()).min()
     }
 
     /// Finds maximum value of a field (terminal operation).
@@ -383,7 +530,7 @@ where
         F: Ord + Clone + 'static,
         I: 'a,
     {
-        self.iter.filter_map(move |item| path.get(item).cloned()).max()
+        self.apply_filters().filter_map(move |item| path.get(item).cloned()).max()
     }
 
     /// Finds minimum float value (terminal operation).
@@ -391,7 +538,7 @@ where
     where
         I: 'a,
     {
-        self.iter
+        self.apply_filters()
             .filter_map(move |item| path.get(item).cloned())
             .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
     }
@@ -401,7 +548,7 @@ where
     where
         I: 'a,
     {
-        self.iter
+        self.apply_filters()
             .filter_map(move |item| path.get(item).cloned())
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
     }
@@ -732,7 +879,7 @@ where
     where
         I: 'a,
     {
-        self.iter
+        self.apply_filters()
             .filter_map(move |item| path.get(item).cloned())
             .min()
     }
@@ -749,7 +896,7 @@ where
     where
         I: 'a,
     {
-        self.iter
+        self.apply_filters()
             .filter_map(move |item| path.get(item).cloned())
             .max()
     }
@@ -767,7 +914,7 @@ where
         I: 'a,
     {
         let items: Vec<i64> = self
-            .iter
+            .apply_filters()
             .filter_map(move |item| path.get(item).cloned())
             .collect();
 
@@ -790,7 +937,7 @@ where
     where
         I: 'a,
     {
-        self.iter
+        self.apply_filters()
             .filter_map(move |item| path.get(item).cloned())
             .sum()
     }
@@ -807,7 +954,7 @@ where
     where
         I: 'a,
     {
-        self.iter
+        self.apply_filters()
             .filter(move |item| path.get(item).is_some())
             .count()
     }

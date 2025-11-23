@@ -121,16 +121,19 @@ where
             .partition(|group| matches!(group, FilterGroup::And(_)));
         
         self.iter.filter(move |item| {
-            // If there are OR groups, item must satisfy either:
-            // - All AND groups, OR
-            // - At least one OR group
-            if !or_groups.is_empty() {
-                let all_and_pass = and_groups.iter().all(|group| group.evaluate(item));
-                let any_or_pass = or_groups.iter().any(|group| group.evaluate(item));
-                all_and_pass || any_or_pass
-            } else {
-                // If no OR groups, all AND groups must pass
-                and_groups.iter().all(|group| group.evaluate(item))
+            match (and_groups.is_empty(), or_groups.is_empty()) {
+                // Only AND groups: all must pass
+                (false, true) => and_groups.iter().all(|group| group.evaluate(item)),
+                // Only OR groups: at least one must pass
+                (true, false) => or_groups.iter().any(|group| group.evaluate(item)),
+                // Both AND and OR groups: (all AND pass) OR (any OR pass)
+                (false, false) => {
+                    let all_and_pass = and_groups.iter().all(|group| group.evaluate(item));
+                    let any_or_pass = or_groups.iter().any(|group| group.evaluate(item));
+                    all_and_pass || any_or_pass
+                }
+                // No filters: everything passes
+                (true, true) => true,
             }
         })
     }
@@ -141,7 +144,8 @@ where
     I: Iterator<Item = &'a T> + 'a,
 {
     /// Adds a filter predicate (lazy - not executed yet).
-    /// Multiple `where_` calls are implicitly ANDed together.
+    /// Multiple `where_` calls are implicitly ANDed together, unless the last group is an OR group,
+    /// in which case `where_` adds to the OR group.
     ///
     /// # Example
     ///
@@ -154,16 +158,22 @@ where
         F: 'static,
         P: Fn(&F) -> bool + 'a,
     {
-        // If the last group is an AND group, add to it; otherwise create a new AND group
         let filter = Box::new(move |item: &T| {
-            path.get(item).map_or(false, |val| predicate(val))
+                path.get(item).map_or(false, |val| predicate(val))
         });
         
+        // If the last group is an OR group, add to it; otherwise create/add to AND group
         match self.filter_groups.last_mut() {
-            Some(FilterGroup::And(filters)) => {
+            Some(FilterGroup::Or(filters)) => {
+                // Add to existing OR group
                 filters.push(filter);
             }
-            _ => {
+            Some(FilterGroup::And(filters)) => {
+                // Add to existing AND group
+                filters.push(filter);
+            }
+            None => {
+                // Create new AND group
                 self.filter_groups.push(FilterGroup::And(vec![filter]));
             }
         }
@@ -1141,14 +1151,288 @@ where
 }
 
 // Enable using LazyQuery in for loops
+// Note: This consumes the query and applies all filters
 impl<'a, T: 'static, I> IntoIterator for LazyQuery<'a, T, I>
 where
-    I: Iterator<Item = &'a T>,
+    I: Iterator<Item = &'a T> + 'a,
 {
     type Item = &'a T;
-    type IntoIter = I;
+    type IntoIter = Box<dyn Iterator<Item = &'a T> + 'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.iter
+        Box::new(self.apply_filters())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ext::QueryableExt;
+    use crate::lazy::LazyQuery;
+    use key_paths_derive::Keypath;
+
+    #[derive(Debug, Clone, PartialEq, Keypath)]
+    struct Product {
+        id: u32,
+        name: String,
+        price: f64,
+        category: String,
+        stock: u32,
+        rating: f64,
+    }
+
+    fn create_test_products() -> Vec<Product> {
+        vec![
+            Product {
+                id: 1,
+                name: "Laptop".to_string(),
+                price: 999.99,
+                category: "Electronics".to_string(),
+                stock: 5,
+                rating: 4.5,
+            },
+            Product {
+                id: 2,
+                name: "Mouse".to_string(),
+                price: 29.99,
+                category: "Electronics".to_string(),
+                stock: 50,
+                rating: 4.0,
+            },
+            Product {
+                id: 3,
+                name: "Keyboard".to_string(),
+                price: 79.99,
+                category: "Electronics".to_string(),
+                stock: 30,
+                rating: 4.8,
+            },
+            Product {
+                id: 4,
+                name: "Monitor".to_string(),
+                price: 299.99,
+                category: "Electronics".to_string(),
+                stock: 12,
+                rating: 4.2,
+            },
+            Product {
+                id: 5,
+                name: "Desk Chair".to_string(),
+                price: 199.99,
+                category: "Furniture".to_string(),
+                stock: 8,
+                rating: 4.7,
+            },
+            Product {
+                id: 6,
+                name: "Premium Laptop".to_string(),
+                price: 1999.99,
+                category: "Electronics".to_string(),
+                stock: 3,
+                rating: 4.9,
+            },
+        ]
+    }
+
+    #[test]
+    fn test_where_implicit_and() {
+        let products = create_test_products();
+        
+        // Multiple where_ calls should be ANDed together
+        let results: Vec<_> = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 100.0)
+            .where_(Product::stock(), |&s| s > 10)
+            .collect();
+        
+        // Should find: Mouse (29.99, stock 50) and Keyboard (79.99, stock 30)
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().any(|p| p.name == "Mouse"));
+        assert!(results.iter().any(|p| p.name == "Keyboard"));
+    }
+
+    #[test]
+    fn test_explicit_and() {
+        let products = create_test_products();
+        
+        let results: Vec<_> = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 100.0)
+            .and(Product::stock(), |&s| s > 10)
+            .collect();
+        
+        // Should find: Mouse and Keyboard
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().any(|p| p.name == "Mouse"));
+        assert!(results.iter().any(|p| p.name == "Keyboard"));
+    }
+
+    #[test]
+    fn test_or_operator() {
+        let products = create_test_products();
+        
+        let results: Vec<_> = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 50.0)
+            .or(Product::category(), |c| c == "Furniture")
+            .collect();
+        
+        // Should find: Mouse (price < 50) and Desk Chair (Furniture)
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().any(|p| p.name == "Mouse"));
+        assert!(results.iter().any(|p| p.name == "Desk Chair"));
+    }
+
+    #[test]
+    fn test_complex_and_or_composition() {
+        let products = create_test_products();
+        
+        // (price < 100 AND stock > 10) OR (category == "Furniture")
+        let results: Vec<_> = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 100.0)
+            .and(Product::stock(), |&s| s > 10)
+            .or(Product::category(), |c| c == "Furniture")
+            .collect();
+        
+        // Should find: Mouse, Keyboard (from AND group), and Desk Chair (from OR group)
+        assert_eq!(results.len(), 3);
+        assert!(results.iter().any(|p| p.name == "Mouse"));
+        assert!(results.iter().any(|p| p.name == "Keyboard"));
+        assert!(results.iter().any(|p| p.name == "Desk Chair"));
+    }
+
+    #[test]
+    fn test_multiple_and_conditions() {
+        let products = create_test_products();
+        
+        let results: Vec<_> = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 200.0)
+            .and(Product::stock(), |&s| s > 5)
+            .and(Product::rating(), |&r| r > 4.5)
+            .collect();
+        
+        // Should find: Keyboard (79.99, stock 30, rating 4.8) and Desk Chair (199.99, stock 8, rating 4.7)
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().any(|p| p.name == "Keyboard"));
+        assert!(results.iter().any(|p| p.name == "Desk Chair"));
+    }
+
+    #[test]
+    fn test_multiple_or_conditions() {
+        let products = create_test_products();
+        
+        let results: Vec<_> = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p > 500.0)
+            .or(Product::category(), |c| c == "Furniture")
+            .or(Product::rating(), |&r| r > 4.8)
+            .collect();
+        
+        // Should find: Laptop (price > 500), Desk Chair (Furniture), Premium Laptop (rating > 4.8)
+        assert_eq!(results.len(), 3);
+        assert!(results.iter().any(|p| p.name == "Laptop"));
+        assert!(results.iter().any(|p| p.name == "Desk Chair"));
+        assert!(results.iter().any(|p| p.name == "Premium Laptop"));
+    }
+
+    #[test]
+    fn test_and_then_or_then_where() {
+        let products = create_test_products();
+        
+        // where().and().or().where() - the second where should add to OR group
+        let results: Vec<_> = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 100.0)
+            .and(Product::stock(), |&s| s > 10)
+            .or(Product::category(), |c| c == "Furniture")
+            .where_(Product::rating(), |&r| r > 4.0)  // This should add to OR group
+            .collect();
+        
+        // Logic: (price < 100 AND stock > 10) OR (category == "Furniture" OR rating > 4.0)
+        // Since rating > 4.0 is true for almost all, this should find most products
+        assert!(results.len() >= 3);
+    }
+
+    #[test]
+    fn test_empty_results() {
+        let products = create_test_products();
+        
+        // Impossible condition
+        let results: Vec<_> = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 0.0)
+            .collect();
+        
+        assert_eq!(results.len(), 0);
+    }
+
+    #[test]
+    fn test_all_results() {
+        let products = create_test_products();
+        
+        // Condition that matches all
+        let results: Vec<_> = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p > 0.0)
+            .collect();
+        
+        assert_eq!(results.len(), products.len());
+    }
+
+    #[test]
+    fn test_or_with_no_previous_and() {
+        let products = create_test_products();
+        
+        // Starting with OR (no previous AND group)
+        let results: Vec<_> = products
+            .lazy_query()
+            .or(Product::category(), |c| c == "Furniture")
+            .collect();
+        
+        // Should find Desk Chair
+        assert_eq!(results.len(), 1);
+        assert!(results[0].name == "Desk Chair");
+    }
+
+    #[test]
+    fn test_count_with_and_or() {
+        let products = create_test_products();
+        
+        let count = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 100.0)
+            .and(Product::stock(), |&s| s > 10)
+            .count();
+        
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn test_first_with_and_or() {
+        let products = create_test_products();
+        
+        let first = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 100.0)
+            .and(Product::stock(), |&s| s > 10)
+            .first();
+        
+        assert!(first.is_some());
+        assert!(first.unwrap().price < 100.0);
+        assert!(first.unwrap().stock > 10);
+    }
+
+    #[test]
+    fn test_any_with_and_or() {
+        let products = create_test_products();
+        
+        let has_match = products
+            .lazy_query()
+            .where_(Product::price(), |&p| p < 50.0)
+            .or(Product::category(), |c| c == "Furniture")
+            .any();
+        
+        assert!(has_match);
     }
 }

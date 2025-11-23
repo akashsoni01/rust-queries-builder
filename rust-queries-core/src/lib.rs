@@ -44,6 +44,7 @@
 pub mod query;
 pub mod join;
 pub mod lazy;
+pub mod lazy_join;
 pub mod lazy_parallel;
 pub mod queryable;
 pub mod ext;
@@ -60,7 +61,10 @@ pub mod macros;
 
 pub use query::{Query, QueryWithSkip};
 pub use join::JoinQuery;
+#[cfg(feature = "parallel")]
+pub use join::ParallelJoinExt;
 pub use lazy::LazyQuery;
+pub use lazy_join::LazyJoinQuery;
 #[cfg(feature = "parallel")]
 pub use lazy_parallel::{LazyParallelQuery, LazyParallelQueryExt};
 pub use queryable::Queryable;

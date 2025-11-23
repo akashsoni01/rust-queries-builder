@@ -169,6 +169,10 @@ path = "examples/and_or_operators.rs"
 name = "complex_join_where_parallel"
 path = "examples/complex_join_where_parallel.rs"
 
+[[example]]
+name = "lazy_parallel_joins"
+path = "examples/lazy_parallel_joins.rs"
+
 [profile.release]
 debug = true
 

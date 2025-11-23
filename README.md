@@ -360,7 +360,9 @@ let first = query.first();
 
 ## Join Operations
 
-Combine multiple collections with type-safe joins:
+Combine multiple collections with type-safe joins. Supports eager, lazy, and parallel execution:
+
+### Eager Joins (Default)
 
 ```rust
 use rust_queries_builder::JoinQuery;
@@ -418,13 +420,91 @@ let high_value = JoinQuery::new(&users, &orders)
     );
 ```
 
+### Lazy Joins (NEW in v1.0.8!)
+
+Lazy joins return iterators for deferred execution and early termination:
+
+```rust
+use rust_queries_builder::LazyJoinQuery;
+
+// Lazy inner join - returns iterator, nothing executes yet!
+let lazy_join = LazyJoinQuery::new(&users, &orders)
+    .inner_join_lazy(
+        User::id(),
+        Order::user_id(),
+        |user, order| (user.name.clone(), order.total)
+    );
+
+// Early termination - only process first 5 matches
+let first_5: Vec<_> = lazy_join.take(5).collect();
+
+// Lazy left join
+let lazy_left = LazyJoinQuery::new(&users, &orders)
+    .left_join_lazy(
+        User::id(),
+        Order::user_id(),
+        |user, order| match order {
+            Some(o) => format!("{} has order {}", user.name, o.id),
+            None => format!("{} has no orders", user.name),
+        }
+    );
+
+// Process all results lazily
+let all_results: Vec<_> = lazy_left.collect();
+```
+
+### Parallel Joins (NEW in v1.0.8!)
+
+Parallel joins use Rayon for better performance on large datasets:
+
+```rust
+use rust_queries_builder::{JoinQuery, ParallelJoinExt};
+
+// Parallel inner join
+let parallel_results: Vec<_> = JoinQuery::new(&users, &orders)
+    .inner_join_parallel(
+        User::id(),
+        Order::user_id(),
+        |user, order| (user.name.clone(), order.total)
+    );
+
+// Parallel left join
+let parallel_left: Vec<_> = JoinQuery::new(&users, &orders)
+    .left_join_parallel(
+        User::id(),
+        Order::user_id(),
+        |user, order| match order {
+            Some(o) => format!("{} has order {}", user.name, o.id),
+            None => format!("{} has no orders", user.name),
+        }
+    );
+
+// Parallel join with WHERE filter
+let high_value_par: Vec<_> = JoinQuery::new(&users, &orders)
+    .inner_join_where_parallel(
+        User::id(),
+        Order::user_id(),
+        |_user, order| order.total > 100.0,
+        |user, order| (user.name.clone(), order.total)
+    );
+```
+
 ### Available Join Types
 
 - **Inner Join**: Returns only matching pairs
+  - `inner_join()` - Eager execution
+  - `inner_join_lazy()` - Lazy iterator (NEW in v1.0.8!)
+  - `inner_join_parallel()` - Parallel execution (NEW in v1.0.8!)
 - **Left Join**: Returns all left items with optional right matches
+  - `left_join()` - Eager execution
+  - `left_join_lazy()` - Lazy iterator (NEW in v1.0.8!)
+  - `left_join_parallel()` - Parallel execution (NEW in v1.0.8!)
 - **Right Join**: Returns all right items with optional left matches
 - **Cross Join**: Returns Cartesian product of both collections
 - **Join Where**: Inner join with additional predicates
+  - `inner_join_where()` - Eager execution
+  - `inner_join_where_lazy()` - Lazy iterator (NEW in v1.0.8!)
+  - `inner_join_where_parallel()` - Parallel execution (NEW in v1.0.8!)
 
 ## Lock-Aware Querying (NEW in v0.8.0!)
 
@@ -837,12 +917,24 @@ for (category, total) in order_products {
 
 ### JoinQuery Methods
 
+**Eager Joins:**
 - `new(left, right)` - Create a new join query
 - `inner_join(left_key, right_key, mapper)` - Inner join
 - `left_join(left_key, right_key, mapper)` - Left join
 - `right_join(left_key, right_key, mapper)` - Right join
 - `inner_join_where(left_key, right_key, predicate, mapper)` - Filtered join
 - `cross_join(mapper)` - Cartesian product
+
+**Lazy Joins (NEW in v1.0.8!):**
+- `LazyJoinQuery::new(left, right)` - Create a new lazy join query
+- `inner_join_lazy(left_key, right_key, mapper)` - Lazy inner join (returns iterator)
+- `left_join_lazy(left_key, right_key, mapper)` - Lazy left join (returns iterator)
+- `inner_join_where_lazy(left_key, right_key, predicate, mapper)` - Lazy filtered join
+
+**Parallel Joins (NEW in v1.0.8!):**
+- `inner_join_parallel(left_key, right_key, mapper)` - Parallel inner join
+- `left_join_parallel(left_key, right_key, mapper)` - Parallel left join
+- `inner_join_where_parallel(left_key, right_key, predicate, mapper)` - Parallel filtered join
 
 ## Running Examples
 

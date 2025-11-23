@@ -1,4 +1,4 @@
-use rust_queries_builder::{QueryExt, QueryBuilder};
+use rust_queries_builder::{QueryExt, QueryableExt, QueryBuilder};
 use key_paths_derive::Keypath;
 
 #[derive(Debug, Clone, Keypath, QueryBuilder)]
@@ -164,9 +164,9 @@ fn main() {
     println!();
 
     println!("10. Slice Extension Trait");
-    println!("    Query: (&products[..]).lazy_query().count()");
+    println!("    Query: products.as_slice().lazy_query().count()");
     
-    let slice_count = (&products[..])
+    let slice_count = products.as_slice()
         .lazy_query()
         .count();
     

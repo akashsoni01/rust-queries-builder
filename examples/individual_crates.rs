@@ -11,7 +11,7 @@
 // key-paths-derive = "0.5.0"
 
 // Import from individual crates
-use rust_queries_core::{Query, QueryExt};  // Core functionality (LazyQuery available via QueryExt)
+use rust_queries_core::{Query, QueryExt, QueryableExt};  // Core functionality (LazyQuery available via QueryableExt)
 use rust_queries_derive::QueryBuilder;      // Derive macro
 use key_paths_derive::Keypath;             // Key-paths
 
@@ -98,7 +98,7 @@ fn main() {
     println!("   products.lazy_query().where_(...).collect()");
     
     let electronics: Vec<_> = products
-        .lazy_query()  // From QueryExt trait
+        .lazy_query()  // From QueryableExt trait
         .where_(Product::category(), |cat| cat == "Electronics")
         .collect();
     
@@ -142,7 +142,7 @@ fn main() {
 
     println!("Summary:");
     println!("--------");
-    println!("✓ rust_queries_core provides: Query, LazyQuery, QueryExt");
+    println!("✓ rust_queries_core provides: Query, LazyQuery, QueryExt, QueryableExt");
     println!("✓ rust_queries_derive provides: #[derive(QueryBuilder)]");
     println!("✓ key_paths_derive provides: #[derive(Keypath)]");
     println!("✓ All features work with individual crates!");

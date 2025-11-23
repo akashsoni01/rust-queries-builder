@@ -15,7 +15,7 @@
 //! ## Example
 //!
 //! ```rust
-//! use rust_queries_builder::{Query, QueryExt};
+//! use rust_queries_builder::{Query, QueryExt, QueryableExt};
 //! use key_paths_derive::Keypath;
 //!
 //! #[derive(Clone, Keypath)]
@@ -32,16 +32,16 @@
 //! ];
 //!
 //! // Using extension trait - most ergonomic
-//! let query = products.query().where_(Product::category_r(), |cat| cat == "Electronics");
+//! let query = products.query().where_(Product::category(), |cat| cat == "Electronics");
 //! let electronics = query.all();
 //!
 //! // Traditional approach
 //! let affordable = Query::new(&products)
-//!     .where_(Product::price_r(), |&price| price < 100.0)
+//!     .where_(Product::price(), |&price| price < 100.0)
 //!     .all();
 //!
 //! // Lazy evaluation for better performance
-//! let total = products.lazy_query().sum_by(Product::price_r());
+//! let total = products.lazy_query().sum_by(Product::price());
 //! ```
 
 // Re-export everything from core

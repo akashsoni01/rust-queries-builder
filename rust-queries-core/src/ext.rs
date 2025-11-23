@@ -68,10 +68,17 @@ pub trait QueryableExt<T> {
     fn lazy_query(&self) -> LazyQuery<T, Box<dyn Iterator<Item = &T> + '_>>;
 }
 
+// Explicit implementation for slices (which are not Sized)
+impl<T: 'static> QueryableExt<T> for [T] {
+    fn lazy_query(&self) -> LazyQuery<T, Box<dyn Iterator<Item = &T> + '_>> {
+        LazyQuery::from_iter(Box::new(self.iter()))
+    }
+}
+
 // Blanket implementation for all Queryable types
 impl<T: 'static, Q> QueryableExt<T> for Q
 where
-    Q: Queryable<T>,
+    Q: Queryable<T> + Sized,
 {
     fn lazy_query(&self) -> LazyQuery<T, Box<dyn Iterator<Item = &T> + '_>> {
         LazyQuery::from_iter(self.query_iter())

@@ -50,13 +50,33 @@ use chrono::{DateTime, TimeZone};
 /// ```ignore
 /// let query = LazyParallelQuery::new(&products)
 ///     .where_(Product::price(), |&p| p < 100.0)
+///     .and(Product::stock(), |&s| s > 0)
+///     .or(Product::category(), |c| c == "Premium")
 ///     .collect_parallel();
 /// ```
 #[cfg(feature = "parallel")]
 pub struct LazyParallelQuery<'a, T: 'static + Send + Sync> {
     data: &'a [T],
-    filters: Vec<Box<dyn Fn(&T) -> bool + Send + Sync>>,
+    filter_groups: Vec<FilterGroup<'a, T>>,
     _phantom: PhantomData<&'a T>,
+}
+
+/// Represents a group of filters with a logical operator for parallel queries.
+/// All filters must be Send + Sync for thread safety.
+#[cfg(feature = "parallel")]
+enum FilterGroup<'a, T: 'static + Send + Sync> {
+    And(Vec<Box<dyn Fn(&T) -> bool + Send + Sync + 'a>>),
+    Or(Vec<Box<dyn Fn(&T) -> bool + Send + Sync + 'a>>),
+}
+
+#[cfg(feature = "parallel")]
+impl<'a, T: 'static + Send + Sync> FilterGroup<'a, T> {
+    fn evaluate(&self, item: &T) -> bool {
+        match self {
+            FilterGroup::And(filters) => filters.iter().all(|f| f(item)),
+            FilterGroup::Or(filters) => filters.iter().any(|f| f(item)),
+        }
+    }
 }
 
 #[cfg(feature = "parallel")]
@@ -71,12 +91,14 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     pub fn new(data: &'a [T]) -> Self {
         Self {
             data,
-            filters: Vec::new(),
+            filter_groups: Vec::new(),
             _phantom: PhantomData,
         }
     }
 
     /// Adds a filter predicate (lazy - not executed yet).
+    /// Multiple `where_` calls are implicitly ANDed together, unless the last group is an OR group,
+    /// in which case `where_` adds to the OR group.
     ///
     /// # Example
     ///
@@ -86,12 +108,118 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     /// ```
     pub fn where_<F>(mut self, path: KeyPaths<T, F>, predicate: impl Fn(&F) -> bool + Send + Sync + 'static) -> Self
     where
-        F: 'static,
+        F: 'static + Send + Sync,
     {
-        self.filters.push(Box::new(move |item| {
+        let filter = Box::new(move |item: &T| {
             path.get(item).map_or(false, |val| predicate(val))
-        }));
+        });
+
+        // If the last group is an OR group, add to it; otherwise create/add to AND group
+        match self.filter_groups.last_mut() {
+            Some(FilterGroup::Or(filters)) => {
+                // Add to existing OR group
+                filters.push(filter);
+            }
+            Some(FilterGroup::And(filters)) => {
+                // Add to existing AND group
+                filters.push(filter);
+            }
+            None => {
+                // Create new AND group
+                self.filter_groups.push(FilterGroup::And(vec![filter]));
+            }
+        }
+        
         self
+    }
+
+    /// Adds a filter with AND logic (explicit AND operator).
+    /// This is equivalent to `where_` but makes the AND relationship explicit.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let query = LazyParallelQuery::new(&products)
+    ///     .where_(Product::price(), |&p| p < 100.0)
+    ///     .and(Product::stock(), |&s| s > 0);
+    /// ```
+    pub fn and<F>(mut self, path: KeyPaths<T, F>, predicate: impl Fn(&F) -> bool + Send + Sync + 'static) -> Self
+    where
+        F: 'static + Send + Sync,
+    {
+        let filter = Box::new(move |item: &T| {
+            path.get(item).map_or(false, |val| predicate(val))
+        });
+        
+        match self.filter_groups.last_mut() {
+            Some(FilterGroup::And(filters)) => {
+                filters.push(filter);
+            }
+            _ => {
+                // If no previous group or previous was OR, start a new AND group
+                self.filter_groups.push(FilterGroup::And(vec![filter]));
+            }
+        }
+        
+        self
+    }
+
+    /// Adds a filter with OR logic (explicit OR operator).
+    /// Items matching this filter OR any filters in the current OR group will pass.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let query = LazyParallelQuery::new(&products)
+    ///     .where_(Product::price(), |&p| p < 100.0)
+    ///     .or(Product::category(), |c| c == "Premium");
+    /// ```
+    pub fn or<F>(mut self, path: KeyPaths<T, F>, predicate: impl Fn(&F) -> bool + Send + Sync + 'static) -> Self
+    where
+        F: 'static + Send + Sync,
+    {
+        let filter = Box::new(move |item: &T| {
+            path.get(item).map_or(false, |val| predicate(val))
+        });
+        
+        match self.filter_groups.last_mut() {
+            Some(FilterGroup::Or(filters)) => {
+                filters.push(filter);
+            }
+            _ => {
+                // If no previous group or previous was AND, start a new OR group
+                self.filter_groups.push(FilterGroup::Or(vec![filter]));
+            }
+        }
+        
+        self
+    }
+
+    /// Evaluates all filter groups against an item.
+    /// Filter groups are evaluated as follows:
+    /// - AND groups: all filters in the group must pass
+    /// - OR groups: at least one filter in the group must pass
+    /// - Between groups: if there are both AND and OR groups, items must satisfy
+    ///   either all AND groups OR at least one OR group (if OR groups exist)
+    fn evaluate_filters(&self, item: &T) -> bool {
+        let (and_groups, or_groups): (Vec<_>, Vec<_>) = self.filter_groups
+            .iter()
+            .partition(|group| matches!(group, FilterGroup::And(_)));
+        
+        match (and_groups.is_empty(), or_groups.is_empty()) {
+            // Only AND groups: all must pass
+            (false, true) => and_groups.iter().all(|group| group.evaluate(item)),
+            // Only OR groups: at least one must pass
+            (true, false) => or_groups.iter().any(|group| group.evaluate(item)),
+            // Both AND and OR groups: (all AND pass) OR (any OR pass)
+            (false, false) => {
+                let all_and_pass = and_groups.iter().all(|group| group.evaluate(item));
+                let any_or_pass = or_groups.iter().any(|group| group.evaluate(item));
+                all_and_pass || any_or_pass
+            }
+            // No filters: everything passes
+            (true, true) => true,
+        }
     }
 
     /// Collects all items into a vector (terminal operation - executes query in parallel).
@@ -104,7 +232,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     pub fn collect_parallel(&self) -> Vec<&'a T> {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .collect()
     }
 
@@ -118,7 +246,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     pub fn first_parallel(&self) -> Option<&'a T> {
         self.data
             .par_iter()
-            .find_any(|item| self.filters.iter().all(|f| f(item)))
+            .find_any(|item| self.evaluate_filters(item))
     }
 
     /// Counts items (terminal operation - executes query in parallel).
@@ -131,7 +259,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     pub fn count_parallel(&self) -> usize {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .count()
     }
 
@@ -145,7 +273,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     pub fn any_parallel(&self) -> bool {
         self.data
             .par_iter()
-            .any(|item| self.filters.iter().all(|f| f(item)))
+            .any(|item| self.evaluate_filters(item))
     }
 
     /// Checks if all items match a predicate (terminal operation - short-circuits in parallel).
@@ -161,7 +289,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .all(predicate)
     }
 
@@ -178,7 +306,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .for_each(f)
     }
 
@@ -200,7 +328,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         let items: Vec<&'a T> = self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .collect();
         
         items.into_iter().fold(init, f)
@@ -219,7 +347,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .find_any(predicate)
     }
 
@@ -240,7 +368,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .collect()
     }
@@ -259,7 +387,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .map(f)
             .collect()
     }
@@ -277,7 +405,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     pub fn take_parallel(&self, n: usize) -> Vec<&'a T> {
         let mut results: Vec<&'a T> = self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .collect();
         results.truncate(n);
         results
@@ -296,7 +424,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     pub fn skip_parallel(&self, n: usize) -> Vec<&'a T> {
         let results: Vec<&'a T> = self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .collect();
         results.into_iter().skip(n).collect()
     }
@@ -319,7 +447,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .sum()
     }
@@ -339,7 +467,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
         let items: Vec<f64> = self
             .data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .collect();
 
@@ -364,7 +492,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .min()
     }
@@ -383,7 +511,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .max()
     }
@@ -395,7 +523,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
     }
@@ -407,7 +535,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
     }
@@ -725,7 +853,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .min()
     }
@@ -744,7 +872,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .max()
     }
@@ -764,7 +892,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
         let items: Vec<i64> = self
             .data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .collect();
 
@@ -789,7 +917,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter_map(|item| path.get(item).cloned())
             .sum()
     }
@@ -808,7 +936,7 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
     {
         self.data
             .par_iter()
-            .filter(|item| self.filters.iter().all(|f| f(item)))
+            .filter(|item| self.evaluate_filters(item))
             .filter(|item| path.get(item).is_some())
             .count()
     }
@@ -982,6 +1110,106 @@ impl<'a, T: 'static + Send + Sync> LazyParallelQuery<'a, T> {
         let now = chrono::Utc::now().timestamp_millis();
         let cutoff = now + (minutes * 60 * 1000); // Convert minutes to milliseconds
         self.where_before_timestamp_parallel(path, cutoff)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ext::LazyParallelQueryExt;
+    use key_paths_derive::Keypath;
+
+    #[derive(Debug, Clone, PartialEq, Keypath)]
+    struct Product {
+        id: u32,
+        name: String,
+        price: f64,
+        category: String,
+        stock: u32,
+    }
+
+    fn create_test_products() -> Vec<Product> {
+        vec![
+            Product {
+                id: 1,
+                name: "Laptop".to_string(),
+                price: 999.99,
+                category: "Electronics".to_string(),
+                stock: 5,
+            },
+            Product {
+                id: 2,
+                name: "Mouse".to_string(),
+                price: 29.99,
+                category: "Electronics".to_string(),
+                stock: 50,
+            },
+            Product {
+                id: 3,
+                name: "Keyboard".to_string(),
+                price: 79.99,
+                category: "Electronics".to_string(),
+                stock: 30,
+            },
+            Product {
+                id: 4,
+                name: "Desk Chair".to_string(),
+                price: 199.99,
+                category: "Furniture".to_string(),
+                stock: 8,
+            },
+        ]
+    }
+
+    #[test]
+    fn test_parallel_and_operator() {
+        let products = create_test_products();
+        
+        let results: Vec<_> = products
+            .lazy_parallel_query()
+            .where_(Product::price(), |&p| p < 100.0)
+            .and(Product::stock(), |&s| s > 10)
+            .collect_parallel();
+        
+        // Should find: Mouse and Keyboard
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().any(|p| p.name == "Mouse"));
+        assert!(results.iter().any(|p| p.name == "Keyboard"));
+    }
+
+    #[test]
+    fn test_parallel_or_operator() {
+        let products = create_test_products();
+        
+        let results: Vec<_> = products
+            .lazy_parallel_query()
+            .where_(Product::price(), |&p| p < 50.0)
+            .or(Product::category(), |c| c == "Furniture")
+            .collect_parallel();
+        
+        // Should find: Mouse (price < 50) and Desk Chair (Furniture)
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().any(|p| p.name == "Mouse"));
+        assert!(results.iter().any(|p| p.name == "Desk Chair"));
+    }
+
+    #[test]
+    fn test_parallel_complex_and_or() {
+        let products = create_test_products();
+        
+        // (price < 100 AND stock > 10) OR (category == "Furniture")
+        let results: Vec<_> = products
+            .lazy_parallel_query()
+            .where_(Product::price(), |&p| p < 100.0)
+            .and(Product::stock(), |&s| s > 10)
+            .or(Product::category(), |c| c == "Furniture")
+            .collect_parallel();
+        
+        // Should find: Mouse, Keyboard (from AND group), and Desk Chair (from OR group)
+        assert_eq!(results.len(), 3);
+        assert!(results.iter().any(|p| p.name == "Mouse"));
+        assert!(results.iter().any(|p| p.name == "Keyboard"));
+        assert!(results.iter().any(|p| p.name == "Desk Chair"));
     }
 }
 

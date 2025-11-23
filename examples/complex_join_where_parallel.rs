@@ -223,24 +223,23 @@ fn main() {
     println!("STEP 3: Complex WHERE with AND/OR - Parallel (Rayon)");
     println!("═══════════════════════════════════════════════════════════════\n");
 
-    // Parallel query - using multiple where_() for AND conditions
-    // Note: OR support for parallel queries is coming soon
+    // Parallel query - now supports AND/OR operators!
     let start = Instant::now();
     let complex_filtered_par: Vec<_> = order_analytics
         .lazy_parallel_query()
         .where_(OrderAnalytics::status(), |s| s == "completed")
-        .where_(OrderAnalytics::total(), |&t| t > 100.0)
+        .and(OrderAnalytics::total(), |&t| t > 100.0)
+        .or(OrderAnalytics::user_age(), |&age| age < 25)
         .where_(OrderAnalytics::product_category(), |cat| cat == "Electronics")
         .collect_parallel();
     let par_time = start.elapsed();
 
-    println!("  Query Parallel: status == 'completed' AND total > 100 AND category == 'Electronics'");
+    println!("  Query Parallel: (status == 'completed' AND total > 100) OR (age < 25 AND category == 'Electronics')");
     println!("  📊 Parallel Results:");
     println!("    • Found {} matching orders", complex_filtered_par.len());
     println!("    • Time: {:?}", par_time);
     println!("    • Speedup: {:.2}x", seq_time.as_nanos() as f64 / par_time.as_nanos() as f64);
-    println!("  ℹ️  Note: Parallel queries use multiple where_() for AND conditions");
-    println!("     For OR queries, use sequential LazyQuery (supports full AND/OR)\n");
+    println!("  ✅ Parallel queries now support AND/OR operators!\n");
 
     // ============================================================================
     // STEP 4: Multiple Complex Queries - Sequential
@@ -298,29 +297,21 @@ fn main() {
 
     let start = Instant::now();
 
-    // Query 1: Premium users with high-value orders (parallel - multiple where_ = AND)
+    // Query 1: Premium users with high-value orders (parallel - using AND)
     let premium_high_value_par: Vec<_> = order_analytics
         .lazy_parallel_query()
         .where_(OrderAnalytics::user_age(), |&age| age >= 30)
-        .where_(OrderAnalytics::total(), |&t| t > 200.0)
-        .where_(OrderAnalytics::status(), |s| s == "completed")
+        .and(OrderAnalytics::total(), |&t| t > 200.0)
+        .and(OrderAnalytics::status(), |s| s == "completed")
         .collect_parallel();
 
-    // Query 2: Electronics with total > 50 (parallel - for OR, use sequential LazyQuery)
-    let electronics_par: Vec<_> = order_analytics
+    // Query 2: Electronics or Sports with good ratings (parallel - using OR)
+    let electronics_or_sports_par: Vec<_> = order_analytics
         .lazy_parallel_query()
         .where_(OrderAnalytics::product_category(), |cat| cat == "Electronics")
-        .where_(OrderAnalytics::total(), |&t| t > 50.0)
-        .collect_parallel();
-    
-    // For OR queries, use sequential LazyQuery which supports OR
-    let sports_par: Vec<_> = order_analytics
-        .lazy_query()
-        .where_(OrderAnalytics::product_category(), |cat| cat == "Sports")
+        .or(OrderAnalytics::product_category(), |cat| cat == "Sports")
         .and(OrderAnalytics::total(), |&t| t > 50.0)
-        .collect();
-    
-    let electronics_or_sports_par: Vec<_> = [electronics_par, sports_par].concat();
+        .collect_parallel();
 
     // Query 3: Young users in major cities
     let young_major_cities_par: Vec<_> = order_analytics
@@ -431,13 +422,16 @@ fn main() {
         .collect();
     let nested_seq_time = start.elapsed();
 
-    // For parallel, we'll do a simpler AND query (OR support coming soon)
+    // Parallel query with AND/OR support
     let start = Instant::now();
     let nested_complex_par: Vec<_> = order_analytics
         .lazy_parallel_query()
         .where_(OrderAnalytics::status(), |s| s == "completed")
-        .where_(OrderAnalytics::total(), |&t| t > 100.0)
-        .where_(OrderAnalytics::product_category(), |cat| cat == "Electronics")
+        .and(OrderAnalytics::total(), |&t| t > 100.0)
+        .and(OrderAnalytics::product_category(), |cat| cat == "Electronics")
+        .or(OrderAnalytics::user_age(), |&age| age < 25)
+        .where_(OrderAnalytics::product_category(), |cat| cat == "Sports")
+        .or(OrderAnalytics::product_category(), |cat| cat == "Toys")
         .collect_parallel();
     let nested_par_time = start.elapsed();
 
@@ -446,12 +440,11 @@ fn main() {
     println!("    • Found {} orders", nested_complex_seq.len());
     println!("    • Time: {:?}", nested_seq_time);
     println!();
-    println!("  Query Parallel: completed AND total > 100 AND Electronics");
-    println!("  📊 Parallel (AND only):");
+    println!("  Query Parallel: (completed AND total > 100 AND Electronics) OR (age < 25 AND (Sports OR Toys))");
+    println!("  📊 Parallel (with AND/OR):");
     println!("    • Found {} orders", nested_complex_par.len());
     println!("    • Time: {:?}", nested_par_time);
-    println!("  ℹ️  Note: Use sequential LazyQuery for complex OR queries");
-    println!("     Parallel OR support is coming soon!\n");
+    println!("    • Speedup: {:.2}x\n", nested_seq_time.as_nanos() as f64 / nested_par_time.as_nanos() as f64);
 
     // ============================================================================
     // SUMMARY
@@ -486,9 +479,9 @@ fn main() {
     println!();
     println!("📝 Notes:");
     println!("   • LazyQuery supports full AND/OR operators");
-    println!("   • LazyParallelQuery currently supports AND (via multiple where_ calls)");
-    println!("   • OR support for parallel queries is coming soon!");
-    println!("   • For complex OR queries, use sequential LazyQuery");
-    println!("   • For large datasets with AND conditions, use LazyParallelQuery");
+    println!("   • LazyParallelQuery now supports full AND/OR operators!");
+    println!("   • Both sequential and parallel queries support the same AND/OR syntax");
+    println!("   • Use LazyParallelQuery for large datasets to leverage multiple CPU cores");
+    println!("   • Use LazyQuery for early termination scenarios (first(), take(), etc.)");
 }
 
